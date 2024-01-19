@@ -1,1 +1,1 @@
-# mystagmus-detection
+# nystagmus-detection
