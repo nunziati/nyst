@@ -162,3 +162,5 @@ cython_debug/
 others/
 data/
 *.egg-info/
+*.mp4
+*.pkl

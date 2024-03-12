@@ -10,7 +10,7 @@ from nyst.visualization import FirstFrameAnnotator
 class FirstPipeline:
     def __init__(self):
         self.region_selector = FirstRegionSelector()
-        self.eye_roi_detector = FirstEyeRoiDetector()
+        self.eye_roi_detector = FirstEyeRoiDetector("yolov8")
         self.left_eye_roi_latch = FirstLatch()
         self.right_eye_roi_latch = FirstLatch()
         self.pupil_detector = ThresholdingPupilDetector()
