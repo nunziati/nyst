@@ -6,4 +6,7 @@ class FirstRegionSelector:
         return frame[roi[1]:roi[3], roi[0]:roi[2]]
     
     def relative_to_absolute(self, relative_position, roi):
-        return (roi[0] + relative_position[0], roi[1] + relative_position[1])
+        if relative_position[0] is None or relative_position[1] is None:
+            return None, None
+        
+        return roi[0] + relative_position[0], roi[1] + relative_position[1]

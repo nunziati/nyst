@@ -1,7 +1,7 @@
 import cv2
 from deepface import DeepFace
 
-from nyst.roi import FirstRoi
+from .roi import FirstRoi
 
 class FirstEyeRoiDetector:
     def __init__(self, backend):

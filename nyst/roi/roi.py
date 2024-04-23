@@ -2,8 +2,8 @@ import numpy as np
 
 class FirstRoi:
     def __init__(self, face_obj):
-        self.left_eye = np.array(face_obj['face']['facial_area']['left_eye'], dtype=int)
-        self.right_eye = np.array(face_obj['face']['facial_area']['right_eye'], dtype=int)
+        self.left_eye = np.array(face_obj['facial_area']['left_eye'], dtype=int)
+        self.right_eye = np.array(face_obj['facial_area']['right_eye'], dtype=int)
 
         distance = int(np.linalg.norm(self.right_eye - self.left_eye))
 

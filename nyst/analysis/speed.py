@@ -18,7 +18,7 @@ class FirstSpeedExtractor:
         aug_factor = time_resolution // 2
         head = np.array([position[0] for _ in range(aug_factor)])
         tail = np.array([position[-1] for _ in range(aug_factor)])
-        position_aug = np.hstack((head, position, tail))
+        position_aug = np.vstack((head, position, tail))
 
         speed = (position_aug[aug_factor:] - position_aug[:-aug_factor]) / time_resolution
 
