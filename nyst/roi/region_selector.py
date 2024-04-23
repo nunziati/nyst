@@ -2,7 +2,7 @@ class FirstRegionSelector:
     def __init__(self):
         pass
 
-    def apply(self, frame, roi):
+    def apply(self, frame, roi): # Crop the frame with the specified ROI
         return frame[roi[1]:roi[3], roi[0]:roi[2]]
     
     def relative_to_absolute(self, relative_position, roi):

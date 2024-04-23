@@ -18,20 +18,27 @@ class FirstPipeline:
         self.speed_extractor = FirstSpeedExtractor()
 
     def apply(self, frame, update_roi=False):
+        # Uptdating eyes ROI
         if update_roi:
-            rois = self.eye_roi_detector.apply(frame)
+            # Calculate the ROI of left and right eyes
+            rois = self.eye_roi_detector.apply(frame) 
+            # Unpack the ROIs and assign them individually to two separate variables
             left_eye_roi = rois.get_left_roi()
             right_eye_roi = rois.get_right_roi()
 
+            # Save the ROIs to the latch variables in order to have two distinct pipeline blocks
             self.left_eye_roi_latch.set(left_eye_roi)
             self.right_eye_roi_latch.set(right_eye_roi)
 
+        # Get distinct ROIs value and save them to two specific variables
         left_eye_roi = self.left_eye_roi_latch.get()
         right_eye_roi = self.right_eye_roi_latch.get()
 
+        # Apply ROI to the selected frame and assign the result to specific variables
         left_eye_frame = self.region_selector.apply(frame, left_eye_roi)
         right_eye_frame = self.region_selector.apply(frame, right_eye_roi)
 
+        # 
         left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame)
         right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame)
 
