@@ -2,7 +2,7 @@ from deepface import DeepFace
 import numpy as np
 
 
-from nyst.roi import FirstRoi
+from .roi import FirstRoi
 
 # Class that defines a method to calculate the ROI boxes of each eye separately.
 class FirstEyeRoiDetector:

@@ -55,12 +55,15 @@ class FirstPipeline:
 
         fps = cap.get(cv2.CAP_PROP_FPS)
         resolution = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        resolution = (resolution[1], resolution[0])
 
         annotated_video_writer = cv2.VideoWriter("annotated_video.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, resolution)
 
         ret, frame = cap.read()
         if ret is False:
             raise RuntimeError("Error reading video")
+
+        frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         
         left_pupil_absolute_position, right_pupil_absolute_position = self.apply(frame, update_roi=True)
 
@@ -69,12 +72,16 @@ class FirstPipeline:
         
         annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
 
+        cv2.imshow("frame", annotated_frame)
+        cv2.waitKey(30)
         annotated_video_writer.write(annotated_frame)
 
         while True:
             ret, frame = cap.read()
             if ret is False:
                 break
+
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
             left_pupil_absolute_position, right_pupil_absolute_position = self.apply(frame)
 
@@ -83,13 +90,17 @@ class FirstPipeline:
 
             annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
 
+            cv2.imshow("frame", annotated_frame)
+            cv2.waitKey(30)
+
             annotated_video_writer.write(annotated_frame)
         
+        cv2.destroyAllWindows()
         cap.release()
         annotated_video_writer.release()
 
-        left_eye_absolute_positions = np.array(left_eye_absolute_positions)
-        right_eye_absolute_positions = np.array(right_eye_absolute_positions)
+        left_eye_absolute_positions = np.array(left_eye_absolute_positions, dtype=np.float32)
+        right_eye_absolute_positions = np.array(right_eye_absolute_positions, dtype=np.float32)
 
         left_eye_speed_dict = self.speed_extractor.apply(left_eye_absolute_positions, fps)
         right_eye_speed_dict = self.speed_extractor.apply(right_eye_absolute_positions, fps)
