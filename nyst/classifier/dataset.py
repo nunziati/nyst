@@ -14,7 +14,7 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         img_name = os.path.join(self.root_dir, self.data_frame.iloc[idx, 0])
-        image = read_image(img_name)  # Definisci la tua funzione read_image
+       # image = read_image(img_name)  # Definisci la tua funzione read_image
         label = self.data_frame.iloc[idx, 1]
         if self.transform:
             image = self.transform(image)

@@ -111,8 +111,9 @@ def main():
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    # 
-
+    # MODIFICALIIIII
+    train_dataset = 0 
+    val_dataset = 0
     # Crea i dataloader per il training e la validazione
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
