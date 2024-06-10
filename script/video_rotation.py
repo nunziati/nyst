@@ -79,5 +79,5 @@ def elabora_videos_nella_cartella(cartella_path):
             mostra_primo_frame_e_ruota(video_path)
 
 # Usa la funzione
-cartella_path = '/repo/porri/dataset_video'
+cartella_path = 'data/test_script'
 elabora_videos_nella_cartella(cartella_path)

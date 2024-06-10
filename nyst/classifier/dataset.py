@@ -1,42 +1,43 @@
 import os
 import torch
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
+from torch.utils.data import Dataset
+import numpy as np
 
 class CustomDataset(Dataset):
-    def __init__(self, csv_file, root_dir, transform=None):
-        self.data_frame = pd.read_csv(csv_file)
-        self.root_dir = root_dir
+    """
+    Expected npy format:
+    {
+        'signals': ['left_position_x', 'left_position_y', ...], # (n_signals,);
+        'patients': np.array, # (n_samples, 1) 
+        'samples': np.array, # (n_samples, n_signals, n_timesteps)
+        'labels': np.array, # (n_samples, 1)
+    }
+    """
+
+    def __init__(self, npy_file, preprocess, transform=None):
+        data = np.load(npy_file, allow_pickle=True)
+
+        data = preprocess(data)
+
+        self.signals = data['signals']
+        self.patients = data['patients']
+        self.samples = data['samples']
+        self.labels = data['labels']
+
         self.transform = transform
 
     def __len__(self):
-        return len(self.data_frame)
+        return len(self.samples)
 
     def __getitem__(self, idx):
-        img_name = os.path.join(self.root_dir, self.data_frame.iloc[idx, 0])
-       # image = read_image(img_name)  # Definisci la tua funzione read_image
-        label = self.data_frame.iloc[idx, 1]
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        sample = self.samples[idx]
+        label = self.labels[idx]
+
         if self.transform:
-            image = self.transform(image)
-        return image, label
+            sample = self.transform(sample)
 
-def load_custom_dataset(csv_file, root_dir, batch_size=32, transform=None):
-    """
-    Carica un dataset personalizzato da un file CSV e una directory.
+        return sample, label
 
-    Args:
-        csv_file (str): Il percorso al file CSV con le annotazioni.
-        root_dir (str): Il percorso alla directory con tutte le immagini.
-        batch_size (int): La dimensione del batch per il dataloader.
-        transform (torchvision.transforms.Compose): Le trasformazioni da applicare alle immagini.
-
-    Returns:
-        DataLoader: Un dataloader per il dataset personalizzato.
-    """
-    dataset = CustomDataset(csv_file=csv_file, root_dir=root_dir, transform=transform)
-    
-    return dataset
-
-# Esempio di utilizzo:
-train_loader = load_custom_dataset('path/to/train_labels.csv', 'path/to/train', batch_size=32)
-val_loader = load_custom_dataset('path/to/val_labels.csv', 'path/to/val', batch_size=32)

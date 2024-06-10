@@ -6,14 +6,12 @@ from nyst.utils import FirstLatch
 from nyst.pupil import ThresholdingPupilDetector
 from nyst.analysis import FirstSpeedExtractor
 from nyst.visualization import FirstFrameAnnotator
-from nyst.preprocessing import VideoProcessor
 
 class FirstPipeline:
     def __init__(self):
-        self.video_preprocessing = VideoProcessor()
         self.region_selector = FirstRegionSelector()
         self.eye_roi_detector = FirstEyeRoiDetector("yolov8")
-        self.eye_roi_segmenter = FirstEyeRoiSegmenter('/repo/porri/nyst/nyst/seg_eyes/model.h5')
+        self.eye_roi_segmenter = FirstEyeRoiSegmenter('nyst/seg_eyes/model.h5')
         self.left_eye_roi_latch = FirstLatch()
         self.right_eye_roi_latch = FirstLatch()
         self.pupil_detector = ThresholdingPupilDetector(threshold=50)
@@ -36,9 +34,11 @@ class FirstPipeline:
                 self.right_eye_roi_latch.set(right_eye_roi)
                 count_from_lastRoiupd = 0
                 print("normal", count_from_lastRoiupd, end="\t\t")
-            except:
+            except Exception as e:
                 count_from_lastRoiupd+=1
                 print("exception", count_from_lastRoiupd, end="\t\t")
+                print(e)
+                _ = input()
             
         else:
             raise RuntimeError('Unable to find a face in the last 30fps')
@@ -79,8 +79,6 @@ class FirstPipeline:
 
         fps = cap.get(cv2.CAP_PROP_FPS)
         resolution = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-        if self.video_preprocessing.invert_resolution:
-            resolution = resolution[::-1]
 
         annotated_video_writer = cv2.VideoWriter("annotated_video.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, resolution)
         count_from_lastRoiupd = 0
@@ -88,11 +86,6 @@ class FirstPipeline:
         ret, frame = cap.read()
         if ret is False:
             raise RuntimeError("Error reading video")
-
-        frame[:, int(0.2 * frame.shape[1]), :] = 0.
-        
-        if self.video_preprocessing.rotation_type is not None:
-            frame = cv2.rotate(frame,self.video_preprocessing.rotation_type)
 
         left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,update_roi=True)
 
@@ -109,12 +102,6 @@ class FirstPipeline:
             ret, frame = cap.read()
             if ret is False:
                 break
-
-            frame[:,:int(0.2 * frame.shape[1]), :] = 0.
-            
-            if self.video_preprocessing.rotation_type is not None:
-                frame = cv2.rotate(frame,self.video_preprocessing.rotation_type)
-
 
             left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd)
 

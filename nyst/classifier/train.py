@@ -1,10 +1,14 @@
+import os
+import copy
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
-import copy
+from torch.utils.data import DataLoader
 import torch.nn.init as init
+
 from classifier import NystClassifier
+from dataset import CustomDataset
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=25, device='cuda', patience=5):
@@ -22,8 +26,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         print('-' * 10)
 
         # Ogni epoca ha una fase di training e una di validazione
-        for phase in ['train', 'val']:
-            if phase == 'train':
+        for phase in ['Train', 'Val']:
+            if phase == 'Train':
                 model.train()  # Imposta il modello in modalità training
                 data_loader = train_loader
             else:
@@ -42,12 +46,12 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
                 optimizer.zero_grad()
 
                 # Solo nella fase di training esegue la forward e backward pass
-                with torch.set_grad_enabled(phase == 'train'):
+                with torch.set_grad_enabled(phase == 'Train'):
                     outputs = model(inputs)
                     loss = criterion(outputs, labels)
                     preds = outputs >= 0.5
 
-                    if phase == 'train':
+                    if phase == 'Train':
                         loss.backward()
                         optimizer.step()
 
@@ -60,7 +64,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
 
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
-            if phase == 'train':
+            if phase == 'Train':
                 train_stats['loss'].append(epoch_loss)
                 train_stats['accuracy'].append(epoch_acc.item())
             else:
@@ -111,9 +115,22 @@ def main():
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    # MODIFICALIIIII
-    train_dataset = 0 
-    val_dataset = 0
+    # Specifica dataset
+    data_root = 'data'
+
+    # Specifica augmentation
+    train_transform = None
+    val_transform = None
+
+    # Crea i dataset
+    train_dir = os.path.join(data_root, 'train')
+    val_dir = os.path.join(data_root, 'val')
+    train_csv = os.path.join(data_root, 'train_labels.csv')
+    val_csv = os.path.join(data_root, 'val_labels.csv')
+
+    train_dataset = CustomDataset(csv_file=train_csv, root_dir=train_dir, transform=train_transform)
+    val_dataset = CustomDataset(csv_file=val_csv, root_dir=val_dir, transform=val_transform)
+
     # Crea i dataloader per il training e la validazione
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)

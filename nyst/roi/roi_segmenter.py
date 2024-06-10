@@ -5,8 +5,8 @@ import tensorflow as tf
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Specifica la seconda GPU
 
-from ..seg_eyes.deeplab_mdl_def import DynamicUpsample
-from ..seg_eyes.utils import plot_predictions, infer, decode_segmentation_masks
+from nyst.seg_eyes.deeplab_mdl_def import DynamicUpsample
+from nyst.seg_eyes.utils import plot_predictions, infer, decode_segmentation_masks
 
 # Class that defines a method to calculate the ROI boxes of each eye separately.
 class FirstEyeRoiSegmenter:

@@ -8,20 +8,32 @@ import cv2
 
 video_extensions = ['.mp4', '.mkv']
 
-def parse_args():
+def parse_args(default_args):
+    root = default_args['input_dir']
+    output_path = default_args['output_dir']
+    clip_duration = default_args['clip_duration']
+    overlapping = default_args['overlapping']
+    resume = default_args['resume']
+
     parser = argparse.ArgumentParser(description='Label videos')
-    parser.add_argument('--resume', action='store_true', help='Resume labeling')
+    parser.add_argument('--resume', action='store_true', default=resume, help='Resume labeling')
+    parser.add_argument('--input_dir', type=str, default=root, help='Input directory')
+    parser.add_argument('--output_dir', type=str, default=output_path, help='Output directory')
+    parser.add_argument('--clip_duration', type=int, default=clip_duration, help='Clip duration in seconds')
+    parser.add_argument('--overlapping', type=int, default=overlapping, help='Overlapping in seconds')
 
     return parser.parse_args()
 
-# Settings
-root = '/repo/porri/dataset_video'
-output_path = '/repo/porri/output_videos'
-clip_duration = 10 # in seconds
-overlapping = 8 # in seconds
-
 def main():
-    args = parse_args()
+    # Default settings
+    root = '/repo/porri/dataset_video'
+    output_path = '/repo/porri/output_videos'
+    clip_duration = 10 # in seconds
+    overlapping = 8 # in seconds
+
+    default_args = {'resume': False, 'input_dir': root, 'output_dir': output_path, 'clip_duration': clip_duration, 'overlapping': overlapping}
+
+    args = parse_args(default_args)
 
     labels = [] 
 
@@ -68,8 +80,18 @@ def main():
                     ret, frame = cap.read()
 
                     if not ret:
-                        end_of_video = True
-                        break
+                        if i < clip_frames // 2:
+                            end_of_video = True
+                            break
+                        else:
+                            video_length = int(cv2.VideoCapture.get(cap, cv2.CAP_PROP_FRAME_COUNT))
+                            cv2.VideoCapture.set(cap, cv2.CAP_PROP_POS_FRAMES, video_length - clip_frames + i)
+                            ret, frame = cap.read()
+
+                            if not ret:
+                                end_of_video = True
+                                break
+
                     end_of_video = False
 
                 if i >= round(clip_frames - overlapping * fps):
@@ -127,6 +149,7 @@ def main():
 
     with open('labels.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
+        writer.writerows([('video', 'label')])
         writer.writerows(labels)
 
 if __name__ == "__main__":
