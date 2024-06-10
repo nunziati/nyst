@@ -141,7 +141,8 @@ def main():
 
     cv2.destroyAllWindows()
 
-    with open('labels.csv', 'w', newline='') as csvfile:
+    output_label_path = os.path.join(output_path, 'labels.csv')
+    with open(output_label_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerows([('video', 'label')])
         writer.writerows(labels)
