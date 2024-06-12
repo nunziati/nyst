@@ -26,7 +26,7 @@ class FirstEyeRoiDetector:
         cv2.circle(frame, right_eye, 5, (0, 255, 0), -1)
 
         # Mostra l'immagine con i punti
-        cv2.imshow("Image with Points", frame)
+        # cv2.imshow("Image with Points", frame)
 
 
 

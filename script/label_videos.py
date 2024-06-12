@@ -63,7 +63,8 @@ def main():
 
         while True:
             output_video_name = video.split('.')[0] + f'_{str(clip_id).rjust(3, "0")}.mp4'
-            output_video_path = os.path.join(output_path, "videos", output_video_name)
+            output_video_relative_path = os.path.join("videos", output_video_name)
+            output_video_path = os.path.join(output_video_relative_path, output_video_name)
             video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (int(cap.get(3)), int(cap.get(4))))
             
             end_of_video = False
@@ -97,9 +98,9 @@ def main():
                 video_writer.write(frame)
 
                 if i == clip_frames - 1:
-                    frame = cv2.putText(frame, text="Select the label: 0, 1", org=(400,300), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0,0,0), thickness=5)
+                    frame = cv2.putText(frame.copy(), text="Select the label: 0, 1", org=(400,300), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0,0,0), thickness=5)
                 cv2.imshow('Frame', frame)
-                cv2.waitKey(20)
+                cv2.waitKey(1)
                 
             if end_of_video and not video_ended:
                 video_writer.release()
@@ -119,10 +120,10 @@ def main():
                 exit_script=True
                 break
             if key == ord('0'):
-                labels.append((output_video_path, 0))
+                labels.append((output_video_relative_path, 0))
                 exit_script=False
             if key == ord('1'):
-                labels.append((output_video_path, 1))
+                labels.append((output_video_relative_path, 1))
                 exit_script=False
                 
             clip_id += 1

@@ -38,7 +38,6 @@ class FirstPipeline:
                 count_from_lastRoiupd+=1
                 print("exception", count_from_lastRoiupd, end="\t\t")
                 print(e)
-                _ = input()
             
         else:
             raise RuntimeError('Unable to find a face in the last 30fps')
@@ -53,14 +52,17 @@ class FirstPipeline:
         # Apply ROI to the selected frame and assign the result to specific variables
         left_eye_frame = self.region_selector.apply(frame, left_eye_roi)
         right_eye_frame = self.region_selector.apply(frame, right_eye_roi)
-        cv2.imshow('Left eye box',left_eye_frame)
-        cv2.imshow('Right eye box',right_eye_frame)
+
+        if left_eye_frame.shape[0] == 0 or left_eye_frame.shape[1] == 0 or right_eye_frame.shape[0] == 0 or right_eye_frame.shape[1] == 0:
+            return (None, None), (None, None), count_from_lastRoiupd
+        # cv2.imshow('Left eye box',left_eye_frame)
+        # cv2.imshow('Right eye box',right_eye_frame)
 
         # Apply segmented ROI to the selected frame and assign the result to specific variables
         left_eye_frame = self.eye_roi_segmenter.apply(left_eye_frame)
         right_eye_frame = self.eye_roi_segmenter.apply(right_eye_frame)
-        cv2.imshow('Left eye segmented',left_eye_frame)
-        cv2.imshow('Right eye segmented',right_eye_frame)
+        # cv2.imshow('Left eye segmented',left_eye_frame)
+        # cv2.imshow('Right eye segmented',right_eye_frame)
 
         # 
         left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame, "left_treshold")
@@ -94,7 +96,7 @@ class FirstPipeline:
         
         annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
 
-        cv2.imshow("frame", annotated_frame)
+        # cv2.imshow("frame", annotated_frame)
         cv2.waitKey(1)
         annotated_video_writer.write(annotated_frame)
 
@@ -111,7 +113,7 @@ class FirstPipeline:
 
             annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
 
-            cv2.imshow("frame", annotated_frame)
+            # cv2.imshow("frame", annotated_frame)
             # Esce se viene premuto 'q'
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

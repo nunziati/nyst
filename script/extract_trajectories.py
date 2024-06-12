@@ -16,10 +16,12 @@ def parse_args():
 def main(args = None):
     if args is None:
         args = parse_args()
-
-    input_dir = args['input_dir']
-    output = args['output']
-
+        input_dir = args.input_dir
+        output = args.output
+    else:
+        input_dir = args['input_dir']
+        output = args['output']
+        
     if not os.path.exists(input_dir) or not os.path.isdir(input_dir):
         raise FileNotFoundError(f"Input directory {input_dir} does not exist")
     
@@ -47,8 +49,6 @@ def main(args = None):
 
         patient = int(video_name[:3])
         label = int(row['label'])
-
-        video_path = os.path.join(input_dir, video_name)
 
         output = pipeline.run(video_path)
 
@@ -85,7 +85,8 @@ def main(args = None):
 
 if __name__ == '__main__':
     args = {
-        'input_dir': 'data/test_script',
-        'output': 'output.csv'
+        'input_dir': 'data/labelled',
+        'output': 'data/labelled/data.npy'
     }
+
     main(args)

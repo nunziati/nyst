@@ -13,7 +13,7 @@ class ThresholdingPupilDetector:
 
         # Return the pupil/iris mask
         _, threshold = cv2.threshold(blurred_roi, self.threshold, 255, cv2.THRESH_BINARY_INV)
-        cv2.imshow(window_name, threshold)
+        # cv2.imshow(window_name, threshold)
 
         # Find the contours of the pupil/iris mask
         contours, _ = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
