@@ -55,7 +55,7 @@ class FirstPipeline:
         left_eye_frame = self.region_selector.apply(frame, left_eye_roi)
         right_eye_frame = self.region_selector.apply(frame, right_eye_roi)
 
-        # Check if the frames are empty and return None if they are
+        # Check if the frames are empty and return None
         if left_eye_frame.shape[0] == 0 or left_eye_frame.shape[1] == 0 or right_eye_frame.shape[0] == 0 or right_eye_frame.shape[1] == 0:
             return (None, None), (None, None), count_from_lastRoiupd
         # Show the frames with the detected eye ROIs
