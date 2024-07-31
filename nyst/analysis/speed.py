@@ -25,7 +25,7 @@ class FirstSpeedExtractor:
         # Calculate augmentation factor as half of the time resolution
         aug_factor = time_resolution // 2
 
-        # Create arrays for augmenting the start and end of the position array
+        # Create arrays for augmenting the start and end of the positions array
         head = np.array([positions[0] for _ in range(aug_factor)])
         tail = np.array([positions[-1] for _ in range(aug_factor)])
 
