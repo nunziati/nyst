@@ -37,3 +37,10 @@ class ThresholdingPupilDetector:
 
 
         return np.array([centroid_x, centroid_y], dtype=np.int32) # Return the center of the pupil/iris'''
+    
+    def relative_to_absolute(self, relative_position, roi):
+        # If the relative position coordinates are None, return None for both coordinates
+        if relative_position[0] is None or relative_position[1] is None:
+            return None, None
+        # Convert relative position to absolute position based on the ROI
+        return roi[0] + relative_position[0], roi[1] + relative_position[1]
