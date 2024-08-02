@@ -30,8 +30,8 @@ def main():
     ### VIDEO SETTINGS ###
 
     # Default settings
-    root = '/repo/porri/dataset_video'
-    output_path = '/repo/porri/output_videos'
+    root = 'D:/prova'
+    output_path = 'D:/nyst_labelled_videos'
     clip_duration = 10 # in seconds
     overlapping = 8 # in seconds
 
@@ -83,8 +83,8 @@ def main():
 
         while True:
             output_video_name = video.split('.')[0] + f'_{str(clip_id).rjust(3, "0")}.mp4' # Generate the output video file name
-            output_video_relative_path = os.path.join("videos", output_video_name) # Create the relative path for the output video
-            output_video_path = os.path.join(output_video_relative_path, output_video_name) # Create the full path for the output video
+            output_video_relative_path = os.path.normpath(os.path.join("videos", output_video_name)) # Create the relative path for the output video
+            output_video_path = os.path.join(output_path, output_video_relative_path) # Create the full path for the output video
             video_writer = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (int(cap.get(3)), int(cap.get(4)))) # Initialize the video writer object
             
             # Flags
@@ -147,7 +147,7 @@ def main():
 
             # Action to be performed based on the key entered
             if key == ord('n'):
-                # If 'n' key is pressed, delete the current video and break the loop
+                # If 'n' key is pressed, delete the current video and continue
                 os.remove(output_video_path)
                 exit_script=False
                 break
@@ -180,7 +180,7 @@ def main():
             break
 
         # Destroy all windows
-        cv2.waitKey(0)
+        cv2.waitKey(1)
         cv2.destroyAllWindows()
 
     # Destroy all OpenCV windows again as a safety measure
