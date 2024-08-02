@@ -60,7 +60,7 @@ def main():
     videos = sorted([video for video in videos if any(video.endswith(ext) for ext in video_extensions)])
     
     # Loop through the list of videos
-    for _, video in enumerate(videos):
+    for video in videos:
         
         # Window to visualize the video 
         cv2.namedWindow('Frame')
@@ -72,16 +72,26 @@ def main():
         # Open the video file
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
-            raise("Error opening video")
+            print(f"Error opening video {video}")
+            continue
         
         fps = cap.get(cv2.CAP_PROP_FPS) # Get number of fps
         clip_frames = round(clip_duration * fps) # Number of frames per clip
+        overlapping_frames = round(overlapping * fps) # Number of overlapping frames
+        video_total_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # Total number of frames in the video
+
+        # Calculate the number of clips based on video length
+        if video_total_length <= clip_frames:
+            # If video length is less than or equal to clip duration, just create one clip
+            num_clips = 1
+        else:
+            num_clips = ((video_total_length - clip_frames) // (clip_frames - overlapping_frames)) + 1 # Delete the last frames (otherwise write +2)
 
         # Queue to store overlapping frames
         overlapping_queue = deque()
         clip_id = 1
 
-        while True:
+        while clip_id <= num_clips:
             output_video_name = video.split('.')[0] + f'_{str(clip_id).rjust(3, "0")}.mp4' # Generate the output video file name
             output_video_relative_path = os.path.normpath(os.path.join("videos", output_video_name)) # Create the relative path for the output video
             output_video_path = os.path.join(output_path, output_video_relative_path) # Create the full path for the output video
@@ -188,10 +198,14 @@ def main():
 
     # Write the labels to a CSV file
     output_label_path = os.path.join(output_path, 'labels.csv')
-    with open(output_label_path, 'w', newline='') as csvfile:
+    file_exists = os.path.isfile(output_label_path)
+
+    with open(output_label_path, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerows([('video', 'label')])
+        if not file_exists:
+            writer.writerow(['video', 'label'])  # write header only if file does not exist
         writer.writerows(labels)
+
 
 if __name__ == "__main__":
     main()
