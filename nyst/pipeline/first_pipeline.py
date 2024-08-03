@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-
 from nyst.roi import FirstRegionSelector, FirstEyeRoiDetector, FirstEyeRoiSegmenter
 from nyst.utils import FirstLatch
 from nyst.pupil import ThresholdingPupilDetector
