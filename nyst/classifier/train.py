@@ -1,5 +1,6 @@
 import os
 import copy
+import tqdm
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -94,7 +95,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
 
 
 ### Training Function with k-cross validation and grid-search ### 
-def train_model_cross(model, train_loader, val_loader, criterion, optimizer, num_epochs=1000  , device='cuda', patience=30, threshold_correct = 0.5): # threshold_correct: probability threshold correct response
+def train_model_cross(model, train_loader, val_loader, criterion, optimizer, num_epochs=1000  , device='cuda', patience=30, threshold_correct=0.5): # threshold_correct: probability threshold correct response
    
     # Move the model to the specified device (e.g., GPU or CPU)
     model = model.to(device)
@@ -112,9 +113,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, num
 
     # Loop through epochs
     for epoch in range(num_epochs):
-        print(f'Epoch {epoch}/{num_epochs - 1}')
-        print('-' * 10)
-
+                
         # Each epoch has a training phase and a validation phase
         for phase in ['Train', 'Val']:
             if phase == 'Train':
@@ -156,7 +155,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, num
             epoch_loss = running_loss / len(data_loader.dataset)
             epoch_acc = running_corrects.double() / len(data_loader.dataset)
 
-            print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+            print(f'Epoch {epoch}/{num_epochs - 1}','-' * 10, f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
             if phase == 'Train':
                 # Store training loss and accuracy for the current epoch
@@ -171,6 +170,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, num
                 if epoch_acc > best_acc:
                     # If current epoch accuracy is better than the best accuracy, update best accuracy and save the current model weights
                     best_acc = epoch_acc
+                    best_loss = epoch_loss
                     best_epoch = epoch
                     best_model_wts = copy.deepcopy(model.state_dict())
                     epochs_no_improve = 0
@@ -182,14 +182,18 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, num
                 if epochs_no_improve >= patience:
                     print('\n\n\nEarly stopping at {epoch}° epoch: {epochs_no_improve} without any accuracy improvement')
                     #model.load_state_dict(best_model_wts)
-                    return best_model_wts, train_stats, val_stats, best_acc, best_epoch
+                    return best_model_wts, train_stats, val_stats, best_acc, best_loss
 
-    print(f'\n\n\n\nBEST MODEL: Best val Acc: {best_acc:.4f}  -  Best Epoch: {best_epoch}')
+
+        # Print progress at the end of each epoch
+        print(f'\t\tEpoch {epoch + 1}/{num_epochs} ------------------- T Loss: {train_stats["loss"][-1]:.4f}, T Acc: {train_stats["accuracy"][-1]:.4f}, V Loss: {val_stats["loss"][-1]:.4f}, V Acc: {val_stats["accuracy"][-1]:.4f}')
+    # Print best model for this training
+    print(f'\n\tBEST MODEL ------------------- Best val Acc: {best_acc:.4f}, Best loss: {best_loss:.6f} Best Epoch: {best_epoch}\n\n')
 
     # Load the model's best weights
     #model.load_state_dict(best_model_wts)
 
-    return best_model_wts, train_stats, val_stats, best_acc, best_epoch
+    return best_model_wts, train_stats, val_stats, best_acc, best_loss
 
 def cross_validate_model(model_class, dataset, param_grid, device='cuda:0', k_folds=5, save_path='D:/nyst_labelled_videos/best_model.pth'):
     
@@ -198,14 +202,16 @@ def cross_validate_model(model_class, dataset, param_grid, device='cuda:0', k_fo
     results = [] # Store k-cross results
 
     # Iterate over all parameter combinations in the parameter grid
-    for params in ParameterGrid(param_grid):
-        print(f"Testing Parameters Matrix: {params}")
+    for params in tqdm(ParameterGrid(param_grid), desc="Parameter Grid"):
+        print("\n\n","-"*100,"\n\n")
+        print(f"Training Net with this Parameters Matrix: {params}\n\n")
 
         # Initialize a dictionary to store results for the current parameter set
         fold_results = {'Parameters set': params, 'Best models': [], 'Val accuracies list': [], 'Avarage val accuracy': 0.0}
         
         # Perform k-fold cross-validation
-        for train_index, val_index in kf.split(dataset):
+        for fold, (train_index, val_index) in enumerate(kf.split(dataset), 1):
+            print(f"\n\tTraining fold {fold}/{k_folds}:")
             # Create training and validation subsets using the generated indices
             train_subset = Subset(dataset, train_index)
             val_subset = Subset(dataset, val_index)
@@ -244,6 +250,7 @@ def cross_validate_model(model_class, dataset, param_grid, device='cuda:0', k_fo
 
             # Extract number of epochs from parameters grid
             patience = params.get('patience', 40)
+            
             # Extract number of epochs from parameters grid
             threshold_correct = params.get('threshold_correct', 0.5)
             
@@ -261,12 +268,13 @@ def cross_validate_model(model_class, dataset, param_grid, device='cuda:0', k_fo
         # Save the result for each set of parameters 
         results.append(fold_results)
         
-        print(f"Average validation accuracy for parameters {params}: {avg_val_acc:.4f}")
+        print(f"\n\n\nAverage validation accuracy for parameters {params}: {avg_val_acc:.4f}")
 
     # Sort results by average accuracy in validation
     results = sorted(results, key=lambda x: x['avg_val_accuracy'], reverse=True)
     
-    print(f"Best parameters: {results[0]['Parameters set']} with average validation accuracy: {results[0]['avg_val_accuracy']:.4f}")
+    print("\n\n","-"*100,"\n\n")
+    print(f"\n\nBest parameters: {results[0]['Parameters set']}, Average validation accuracy: {results[0]['avg_val_accuracy']:.4f}")
 
     # Extract the list of best models and corresponding validation accuracies
     best_models_list = results[0]['Best models']
@@ -286,6 +294,7 @@ def cross_validate_model(model_class, dataset, param_grid, device='cuda:0', k_fo
     
     return results, best_model
 
+# Initialisation parameters function
 def initialize_parameters(model:nn.Module, mean:float = 0.0, std:float = 0.02): 
     # Initialise model parameters with a normal distribution
     for name, param in model.named_parameters():
@@ -325,16 +334,18 @@ def main_classic():
     # Start the training
     trained_model, train_stats, val_stats = train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=25, device='cuda', patience=5)
 
+# Main for the cross-validation version 
 def main():
     # Define our model, loss criteria and optimiser
     model = NystClassifier()
     initialize_parameters(model)
     
     # Specify the dataset path
-    data_root = 'data'
+    data_root = 'D:/nyst_labelled_videos'
 
     # Specifiy augmentation
-    transform = transform.Compose([transform.ToTensor()])
+    train_transform = None
+    val_transform = None
     dataset = CustomDataset(csv_file=os.path.join(data_root, 'labels.csv'), root_dir=os.path.join(data_root, 'videos'), transform=transform)
 
     param_grid = {
