@@ -12,7 +12,7 @@ class FirstPipeline:
     def __init__(self):
         self.region_selector = FirstRegionSelector()
         self.eye_roi_detector = FirstEyeRoiDetector("yolov8")
-        self.eye_roi_segmenter = FirstEyeRoiSegmenter('nyst/seg_eyes/model.h5')
+        self.eye_roi_segmenter = FirstEyeRoiSegmenter('D:/model.h5')
         self.left_eye_roi_latch = FirstLatch()
         self.right_eye_roi_latch = FirstLatch()
         self.pupil_detector = ThresholdingPupilDetector(threshold=50)
@@ -80,7 +80,6 @@ class FirstPipeline:
 
         return left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd
 
-    
     def run(self, video_path):
         # Initialize lists to store absolute positions of left and right eye pupils
         left_eye_absolute_positions = []
@@ -164,7 +163,7 @@ class FirstPipeline:
         left_eye_absolute_positions = np.array(left_eye_absolute_positions, dtype=np.float32)
         right_eye_absolute_positions = np.array(right_eye_absolute_positions, dtype=np.float32)
 
-        # Extract speed information for the left and right eyes  ############### QUI
+        # Extract speed information for the left and right eyes
         left_eye_speed_dict = self.speed_extractor.apply(left_eye_absolute_positions, fps)
         right_eye_speed_dict = self.speed_extractor.apply(right_eye_absolute_positions, fps)
 
@@ -185,71 +184,23 @@ class FirstPipeline:
 
         return output_dict
     
-def videos_feature_extractor(self, input_folder, output_path):
-    # Path for the labels CSV file
-    output_features_path = os.path.join(output_path, 'video_features.csv')
-    # Verify if the file already exists
-    file_exists = os.path.isfile(output_features_path)
-    
-    # Prepare the CSV writer for the labels file
-    with open(output_features_path, 'a', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        if not file_exists:
-            writer.writerow([
-                'video', 'resolution', 'left_position X', 'left_position Y', 
-                'right_position X', 'right_position Y', 'left_speed X', 'left_speed Y', 
-                'right_speed X', 'right_speed Y'
-            ])  # write header only if file does not exist
-
-        # Iterate through all video files in the input folder
-        for video in os.listdir(input_folder):
-            if video.endswith('.mp4'):  # Add other video formats if needed
-                video_path = os.path.join(input_folder, video)
-                try:
-                    # Run the processing on the video
-                    output_dict = self.run(video_path)
-
-                    # Create a unique name for the output video
-                    output_video_name = video.split('.')[0] + '_annotated.mp4'
-                    output_video_relative_path = os.path.normpath(os.path.join("videos", output_video_name))
-
-                    # Extract positions and speed from the output_dict
-                    left_positions = output_dict['position']['left']
-                    right_positions = output_dict['position']['right']
-
-                    # Write the result to the labels CSV file, including resolution
-                    for resolution in output_dict['speed']:
-                        left_speed = output_dict['speed'][resolution]["left"]
-                        right_speed = output_dict['speed'][resolution]["right"]
-
-                        for i in range(len(left_positions)):
-                            writer.writerow([
-                                output_video_relative_path, resolution,
-                                left_positions[i][0], left_positions[i][1],
-                                right_positions[i][0], right_positions[i][1],
-                                left_speed[i][0], left_speed[i][1],
-                                right_speed[i][0], right_speed[i][1]
-                            ])
-                except Exception as e:
-                    print(f"Failed to process {video}: {e}")
-
-    ############ WORK IN PROGRESS #############
-
     def videos_feature_extractor(self, input_folder, output_path):
-        # Path for the labels CSV file
+        # Path for the video_features CSV file
         output_features_path = os.path.join(output_path, 'video_features.csv')
         # Verify if the file already exists
         file_exists = os.path.isfile(output_features_path)
         
         # Prepare the CSV writer for the labels file
         with open(output_features_path, 'a', newline='') as csvfile:
+            # Write the video_features CSV file
             writer = csv.writer(csvfile)
+            # Write header only if file does not exist
             if not file_exists:
                 writer.writerow([
                     'video', 'resolution', 'left_position X', 'left_position Y', 
                     'right_position X', 'right_position Y', 'left_speed X', 'left_speed Y', 
                     'right_speed X', 'right_speed Y'
-                ])  # write header only if file does not exist
+                ])  
 
             # Iterate through all video files in the input folder
             for video in os.listdir(input_folder):
@@ -259,26 +210,44 @@ def videos_feature_extractor(self, input_folder, output_path):
                         # Run the processing on the video
                         output_dict = self.run(video_path)
 
-                        # Create a unique name for the output video
-                        output_video_name = video.split('.')[0] + '_annotated.mp4'
-                        output_video_relative_path = os.path.normpath(os.path.join("videos", output_video_name))
+                        # Create a unique path for the output video name
+                        output_video_relative_path = os.path.normpath(os.path.join("videos", video)) # Create the relative path for the output video
 
                         # Extract positions and speed from the output_dict
                         left_positions = output_dict['position']['left']
                         right_positions = output_dict['position']['right']
+                        speed_dict = output_dict['speed']
 
                         # Write the result to the labels CSV file, including resolution
-                        for resolution in output_dict['speed']:
-                            left_speed = output_dict['speed'][resolution]["left"]
-                            right_speed = output_dict['speed'][resolution]["right"]
+                        for resolution in speed_dict:
+                            # Initialisation lists
+                            left_speed_x = []
+                            left_speed_y = []
+                            right_speed_x = []
+                            right_speed_y = []
 
+                            # Store the speeds
                             for i in range(len(left_positions)):
-                                writer.writerow([
-                                    output_video_relative_path, resolution,
-                                    left_positions[i][0], left_positions[i][1],
-                                    right_positions[i][0], right_positions[i][1],
-                                    left_speed[i][0], left_speed[i][1],
-                                    right_speed[i][0], right_speed[i][1]
-                                ])
+                                left_speed_x.append(speed_dict[resolution]["left"][i][0])
+                                left_speed_y.append(speed_dict[resolution]["left"][i][1])
+                                right_speed_x.append(speed_dict[resolution]["right"][i][0])
+                                right_speed_y.append(speed_dict[resolution]["right"][i][1])
+
+                            # Store lists as strings in CSV
+                            writer.writerow([
+                                output_video_relative_path, resolution,
+                                [pos[0] for pos in left_positions],
+                                [pos[1] for pos in left_positions],
+                                [pos[0] for pos in right_positions],
+                                [pos[1] for pos in right_positions],
+                                left_speed_x,
+                                left_speed_y,
+                                right_speed_x,
+                                right_speed_y
+                            ])
                     except Exception as e:
                         print(f"Failed to process {video}: {e}")
+
+            # Completion message
+            print("Video processing completed successfully.")
+

@@ -1,15 +1,21 @@
 import pickle
-import cv2
+import sys
+import os
 
-from nyst.pipeline import FirstPipeline
+# Aggiungi la directory 'code' al PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from nyst.pipeline.first_pipeline import FirstPipeline
 
 def main():
     pipeline = FirstPipeline()
-    output_dict = pipeline.run('/repo/porri/20.mp4')
+    output_dict = pipeline.run('D:/nyst_labelled_videos/videos/001_001_001.mp4')
     
     with open("output_dict.pkl", "wb") as f:
-        pickle.dump(output_dict, f)
-
+         pickle.dump(output_dict, f)
+    # input_folder = 'D:/nyst_labelled_videos/videos'
+    # output_folder = 'D:/nyst_labelled_videos'
+    # pipeline.videos_feature_extractor(input_folder, output_folder)
 
 if __name__ == "__main__":
     main()
