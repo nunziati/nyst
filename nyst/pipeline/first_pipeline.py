@@ -19,22 +19,23 @@ class FirstPipeline:
         self.frame_annotator = FirstFrameAnnotator()
         self.speed_extractor = FirstSpeedExtractor()
         
-    def apply(self, frame, count_from_lastRoiupd, threshold=1000, update_roi=True):
+    def apply(self, frame, count_from_lastRoiupd, idx_frame, threshold=100, update_roi=True):
         # Update the eye ROI if specified and if the count is less than a threshold
         if update_roi and count_from_lastRoiupd < threshold:
             try:
                 # Compute the ROI for the left and right eyes
-                rois = self.eye_roi_detector.apply(frame)
-
+                rois = self.eye_roi_detector.apply(frame, idx_frame)
+    
                 # Unpack the ROIs for the left and right eyes
                 left_eye_roi = rois.get_left_eye_roi()
                 right_eye_roi = rois.get_right_eye_roi()
-
+               
                 # Save the ROIs to latch variables to have two distinct pipeline blocks
                 self.left_eye_roi_latch.set(left_eye_roi)
                 self.right_eye_roi_latch.set(right_eye_roi)
+                
                 count_from_lastRoiupd = 0 # Counter last latch update
-                print("Normal: ", count_from_lastRoiupd, end="\t\t")
+                # print("Normal: ", count_from_lastRoiupd, end="\t\t")
             except Exception as e:
                 # Increment count and print exception details if an error occurs
                 count_from_lastRoiupd+=1
@@ -43,11 +44,11 @@ class FirstPipeline:
             
         else:
             raise RuntimeError('Unable to find a face in the last 30fps')
-            
+        
         # Retrieve the ROI values from the latch variables
         left_eye_roi = self.left_eye_roi_latch.get()
         right_eye_roi = self.right_eye_roi_latch.get()
-
+        
         # Return if both ROIs are None
         if left_eye_roi is None and right_eye_roi is None:
             return (None, None), (None, None), count_from_lastRoiupd
@@ -55,14 +56,14 @@ class FirstPipeline:
         # Apply ROI to the selected frame and store the results
         left_eye_frame = self.region_selector.apply(frame, left_eye_roi)
         right_eye_frame = self.region_selector.apply(frame, right_eye_roi)
-
+        
         # Check if the frames are empty and return None
         if left_eye_frame.shape[0] == 0 or left_eye_frame.shape[1] == 0 or right_eye_frame.shape[0] == 0 or right_eye_frame.shape[1] == 0:
             return (None, None), (None, None), count_from_lastRoiupd
         # Show the frames with the detected eye ROIs
         # cv2.imshow('Left eye box',left_eye_frame)
         # cv2.imshow('Right eye box',right_eye_frame)
-
+       
         # Apply segmentation to the eye frames ROI
         left_eye_frame = self.eye_roi_segmenter.apply(left_eye_frame)
         right_eye_frame = self.eye_roi_segmenter.apply(right_eye_frame)
@@ -73,11 +74,11 @@ class FirstPipeline:
         # Detect the relative position of the pupil in each eye frame
         left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame, "left_treshold")
         right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame, "left_treshold")
-
+        
         # Convert the relative pupil positions to absolute positions based on the ROI 
         left_pupil_absolute_position = self.pupil_detector.relative_to_absolute(left_pupil_relative_position, left_eye_roi) # (X,Y) Absolute position of the left eye
         right_pupil_absolute_position = self.pupil_detector.relative_to_absolute(right_pupil_relative_position, right_eye_roi) # (X,Y) Absolute position of the right eye
-
+        
         return left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd
 
     def run(self, video_path):
@@ -91,6 +92,7 @@ class FirstPipeline:
         # Get the frames per second (FPS) and resolution of the video
         fps = cap.get(cv2.CAP_PROP_FPS)
         resolution = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        
         '''
         if self.video_preprocessing.invert_resolution:
             resolution = resolution[::-1]
@@ -102,12 +104,16 @@ class FirstPipeline:
 
         # Read the first frame of the video
         ret, frame = cap.read()
+        
+        # Frame counter
+        count = 0
+
         if ret is False:
             # Raise an error if the frame could not be read
             raise RuntimeError("Error reading video")
 
         # Apply the processing method for absolute position pupil estimation to the frame
-        left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,update_roi=True)
+        left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,count)   # PROBLEMA PARTE DA QUI
 
         # Append the positions to the respective lists (list of tuple of absolute x,y coordinates)
         left_eye_absolute_positions.append(left_pupil_absolute_position)
@@ -115,14 +121,13 @@ class FirstPipeline:
         
         # Annotate the frame with the pupil positions
         annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
-
+        
         # Display the annotated frame
         # cv2.imshow("frame", annotated_frame)
         cv2.waitKey(1)
 
         # Write the annotated frame to the video writer
         annotated_video_writer.write(annotated_frame)
-
 
         # Loop to process each frame of the video
         while True:
@@ -132,10 +137,13 @@ class FirstPipeline:
             # Break the loop if no frame is read (end of video)
             if ret is False:
                 break
-
+            # Increment the frame counter
+            count += 1
+            # Print the frame counter
+            print("Frame:", count)
             # Apply the processing method to the frame
-            left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd)
-
+            left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,count)
+           
             # Append the positions to the respective lists
             left_eye_absolute_positions.append(left_pupil_absolute_position)
             right_eye_absolute_positions.append(right_pupil_absolute_position)
@@ -145,7 +153,7 @@ class FirstPipeline:
             annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
 
             # Display the annotated frame
-            # cv2.imshow("frame", annotated_frame)
+            #cv2.imshow("frame", annotated_frame)
 
             # Exit if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -181,7 +189,9 @@ class FirstPipeline:
             },
             "speed": speed_dict
         }
-
+        
+        print('\n\----->   Video Features Extracted')
+        
         return output_dict
     
     def videos_feature_extractor(self, input_folder, output_path):
