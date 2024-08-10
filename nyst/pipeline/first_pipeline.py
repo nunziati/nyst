@@ -111,7 +111,7 @@ class FirstPipeline:
         if ret is False:
             # Raise an error if the frame could not be read
             raise RuntimeError("Error reading video")
-
+        
         # Apply the processing method for absolute position pupil estimation to the frame
         left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,count)   # PROBLEMA PARTE DA QUI
 
@@ -139,6 +139,7 @@ class FirstPipeline:
                 break
             # Increment the frame counter
             count += 1
+            
             # Print the frame counter
             print("Frame:", count)
             # Apply the processing method to the frame

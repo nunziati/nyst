@@ -32,7 +32,7 @@ class FirstSpeedExtractor:
         position_aug = np.vstack((head, positions, tail))
 
         # Initialize speed array with zeros
-        speed = np.zeros(len(positions))
+        speed = np.zeros((len(positions), 2), dtype=np.float32)  
 
         # Compute the speed array
         for i in range(len(positions)):
@@ -41,10 +41,9 @@ class FirstSpeedExtractor:
 
             # If either position is None, set speed to 0
             if pos_start is None or pos_end is None:
-                speed[i] = 0
-            else: # Compute the speed array
-                speed[i] = (pos_end - pos_start) / time_resolution
-
+                speed[i, :] = [0, 0]
+            else:
+                speed[i, :] = (pos_end - pos_start) / time_resolution
         return speed
 
     '''def compute_speed(self, positions, time_resolution):

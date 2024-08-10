@@ -30,7 +30,7 @@ def main():
     ### VIDEO SETTINGS ###
 
     # Default settings
-    root = 'D:/prova'
+    root = 'D:/nyst_flatten_video'
     output_path = 'D:/nyst_labelled_videos'
     clip_duration = 10 # in seconds
     overlapping = 8 # in seconds
