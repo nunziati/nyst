@@ -15,7 +15,7 @@ def main():
     with open("output_dict.pkl", "wb") as f:
          pickle.dump(output_dict, f)'''
     
-    input_folder = 'D:/nyst_labelled_videos/videos'
+    input_folder = 'D:/nyst_labelled_videos/test'
     output_folder = 'D:/nyst_labelled_videos'
     pipeline.videos_feature_extractor(input_folder, output_folder)
 
