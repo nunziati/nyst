@@ -40,8 +40,8 @@ class FirstSpeedExtractor:
             pos_end = position_aug[(i + time_resolution) - 1]
 
             # If either position is None, set speed to 0
-            if pos_start is None or pos_end is None:
-                speed[i, :] = [0, 0]
+            if pos_start is None or pos_end is None or pos_start == 'nan' or pos_end == 'nan':
+                speed[i, :] = [0., 0.]
             else:
                 speed[i, :] = (pos_end - pos_start) / time_resolution
         return speed

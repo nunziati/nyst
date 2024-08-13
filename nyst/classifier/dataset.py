@@ -3,6 +3,8 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
+import json
+
 
 class CustomDataset(Dataset):
     """
@@ -25,7 +27,7 @@ class CustomDataset(Dataset):
 
         # Perform the join on the 'video' column
         self.merged_data = pd.merge(self.input_data, self.label_data, on='video', how='left')
-        print(self.merged_data.head(6))
+        print(self.merged_data.head(-1))
 
         # Applica la funzione di preprocessing se fornita
         if preprocess:
@@ -36,8 +38,11 @@ class CustomDataset(Dataset):
         # Exctraction data
         self.data = self.exctraction_values(self.data)
 
+        # Filter the invalid data
+        self.data, self.invalid_video_info = self.filtering_invalid_data(self.data)
+
         # Extract the different components of the dataset
-        self.signals = self.data['signals']
+        self.signals = self.signals = np.array(self.data['signals'])
         self.resolutions = self.data['resolutions']
         self.patients = self.data['patients']
         self.samples = self.data['samples']
@@ -66,17 +71,24 @@ class CustomDataset(Dataset):
 
         return signal, label
 
+# Extract the input/label info from the csv file
     def exctraction_values(self, merged_data):
             """
             Preprocessing di default dei dati uniti. Qui viene implementata la logica di base
             per estrarre i segnali, le risoluzioni, i pazienti, i campioni e le etichette.
             """
             # Estrai i segnali
-            signals = merged_data[['left_position X', 'left_position Y', 
-                                    'right_position X', 'right_position Y',
-                                    'left_speed X', 'left_speed Y', 
-                                    'right_speed X', 'right_speed Y']].to_numpy()
+            signals_str = merged_data[['left_position X', 'left_position Y', 
+                               'right_position X', 'right_position Y',
+                               'left_speed X', 'left_speed Y', 
+                               'right_speed X', 'right_speed Y']].values
+            
+            # Convert strings into lists of float
+            signals = [[parse_float_list(signal) for signal in row] for row in signals_str]
 
+            # Convert the list of list in a numpy array
+            #signals = np.array(signals)
+            
             # Estrai le risoluzioni
             resolutions = merged_data['resolution'].to_numpy().reshape(-1, 1)
 
@@ -105,8 +117,74 @@ class CustomDataset(Dataset):
                 'samples': samples,
                 'labels': labels
             }
- 
 
+    # Data filtering invalid videos/ data
+    def filtering_invalid_data(self, dictionary_input, frames_video=300, nan_threshold=0.2, zero_threshold=0.2): # CERCA DI PASSARLO IN MODO DINAMICO
+              
+        # Retrieve the input signal values
+        signals = dictionary_input['signals']
+        valid_indices = []
+        invalid_video_info = []
+    
+        for i in range(len(signals)):
+            # Extract the specific signal values
+            row = signals[i]
+
+            # Split the signals into positions and speeds, and convert thr string value into list of float values
+            positions = [parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
+            speeds = [parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
+            
+            pippo = [np.sum(np.array(speed) == 0.0) for speed in speeds]
+            pippo2 = [np.isnan(speed).sum() for speed in speeds]
+            print(f"Number of {i}: {pippo} e {pippo2}")
+            
+            # Check the dimension of the signals
+            dimension_signal = all([len(signal)==frames_video for signal in row])
+        
+            # Check NaN threshold per list
+            nan_exceeds_threshold = any(np.isnan(pos).sum() / len(pos) > nan_threshold for pos in positions) or any(np.isnan(speed).sum() / len(speed) > nan_threshold for speed in speeds)
+            
+            # Check zero speed threshold per list 
+            zero_exceeds_threshold = any((np.sum(np.array(speed) == 0.0) + np.isnan(speed).sum()) / len(speed) > zero_threshold for speed in speeds)
+            
+            # Keep this row if it doesn't exceed any threshold
+            if not nan_exceeds_threshold and not zero_exceeds_threshold and dimension_signal:
+                valid_indices.append(i)
+            else:
+                # Save the invalid video info
+                invalid_video_info.append(dictionary_input['samples'][i])
+        
+        
+        # Filter the dictionary based on valid indices
+        filtered_data = {}
+        for key, value in dictionary_input.items():
+            if key == "signals":
+                # Filter the 'signals' key, which is a list of lists of lists with a critical dimension (dim 2) that cannot allow the transformation into a numpy array
+                filtered_data[key] = [value[i] for i in valid_indices]
+            else:
+                # For the other keys, which are NumPy arrays, use NumPy indexing
+                filtered_data[key] = value[valid_indices]
+
+        # Signals list of lists to Multidimensional numpy array
+        try:
+            filtered_data['signals'] = np.array( filtered_data['signals'])
+        except Exception as e:
+            print(f"Error while converting signals to numpy array: {e}")
+        
+        return filtered_data, invalid_video_info
+
+# String to list function
+def parse_float_list(string_value):
+    # Replace 'nan' with 'null' because json.loads doesn't recognize value nan
+    string_value = string_value.replace('nan', 'null')
+    # Use json.loads to convert a string to Python list/dictionary
+    float_list = json.loads(string_value)
+    # Replace 'null' with float 'nan' as in the original data
+    float_list = [float('nan') if x is None else x for x in float_list]
+    
+    return float_list
+
+# Split the data in customised training and test sets
 def split_data(dictionary_input, perc_test):
     # Extract unique patients
     patients = dictionary_input['patients'].flatten()
@@ -159,6 +237,8 @@ def split_data(dictionary_input, perc_test):
     
     return train_data, test_data
 
+
+
 if __name__ == '__main__':
     # Replace with the actual paths to your CSV files
     csv_input_file = 'D:/nyst_labelled_videos/video_features.csv'
@@ -170,3 +250,7 @@ if __name__ == '__main__':
 
     print('Train data:', train_data['patients'])
     print('Test data:', test_data['patients'])
+
+    # Print invalid videos info
+    print(f'\n\nThe list of invalid videos is: {dataset.invalid_video_info}')
+        
