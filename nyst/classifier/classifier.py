@@ -4,8 +4,8 @@ import torch.nn as nn
 
 class NystClassifier(nn.Module):
     def __init__(self):
-        super(CNNfeatureExtractorTime, self).__init__()
-        self.input_dim = 320 # Number total frames
+        super(NystClassifier, self).__init__() # Calls up the constructor of the parents class 
+        self.input_dim = 300 # Number total frames
         self.num_channels = 8 # Number of positions + speed
         self.nf = 64 # Number of filters
         self.index_activation_middle_layer = 0 # Activation function middle layer
@@ -27,7 +27,7 @@ class NystClassifier(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self,x):# batch_size, 8, 320
+    def forward(self,x):# batch_size, 8, 300
         # Pass the input through the tuned CNN to extract features
         features = self.tunedCNN(x)
         # Pass the extracted features through the output network

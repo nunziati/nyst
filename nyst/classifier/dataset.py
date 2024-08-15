@@ -7,19 +7,6 @@ import json
 
 
 class CustomDataset(Dataset):
-    """
-    Expected npy format:
-    {
-        'signals': np.array['left_position X', 'left_position Y', 
-                    'right_position X', 'right_position Y', 'left_speed X', 'left_speed Y', 
-                    'right_speed X', 'right_speed Y']
-        'resolutions': 'val_resolution'
-        'patients': np.array: patient folder number, 
-        'samples': np.array: patient video, clip and number of valid resolutions for this clip # (n_samples, n_clip, valid_resolution)
-        'labels': np.array, # (len(samples)*len(val_resolution), 1)
-    }
-    """
-
     def __init__(self, csv_input_file, csv_label_file, preprocess=None, transform=None):
         # Load the CSV file
         self.input_data = pd.read_csv(csv_input_file)
@@ -27,7 +14,7 @@ class CustomDataset(Dataset):
 
         # Perform the join on the 'video' column
         self.merged_data = pd.merge(self.input_data, self.label_data, on='video', how='left')
-        print(self.merged_data.head(-1))
+        # print(self.merged_data.head(-1))
 
         # Applica la funzione di preprocessing se fornita
         if preprocess:
@@ -41,12 +28,22 @@ class CustomDataset(Dataset):
         # Filter the invalid data
         self.data, self.invalid_video_info = self.filtering_invalid_data(self.data)
 
-        # Extract the different components of the dataset
-        self.signals = self.signals = np.array(self.data['signals'])
-        self.resolutions = self.data['resolutions']
-        self.patients = self.data['patients']
-        self.samples = self.data['samples']
-        self.labels = self.data['labels']
+        # Split the dataset
+        self.train_data, self.test_data = split_data(self.data)
+
+        # Extract the different components of the two sets
+        self.train_signals = self.train_data['signals']
+        self.train_resolutions = self.train_data['resolutions']
+        self.train_patients = self.train_data['patients']
+        self.train_samples = self.train_data['samples']
+        self.train_labels = self.train_data['labels']
+        
+        self.test_signals = self.test_data['signals']
+        self.test_resolutions = self.test_data['resolutions']
+        self.test_patients = self.test_data['patients']
+        self.test_samples = self.test_data['samples']
+        self.test_labels = self.test_data['labels']
+
 
         # Store the transformation function (if any)
         self.transform = transform
@@ -134,9 +131,9 @@ class CustomDataset(Dataset):
             positions = [parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
             speeds = [parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
             
-            pippo = [np.sum(np.array(speed) == 0.0) for speed in speeds]
+            '''pippo = [np.sum(np.array(speed) == 0.0) for speed in speeds]
             pippo2 = [np.isnan(speed).sum() for speed in speeds]
-            print(f"Number of {i}: {pippo} e {pippo2}")
+            print(f"Number of {i}: {pippo} e {pippo2}")'''
             
             # Check the dimension of the signals
             dimension_signal = all([len(signal)==frames_video for signal in row])
@@ -185,7 +182,7 @@ def parse_float_list(string_value):
     return float_list
 
 # Split the data in customised training and test sets
-def split_data(dictionary_input, perc_test):
+def split_data(dictionary_input, perc_test=0.1):
     # Extract unique patients
     patients = dictionary_input['patients'].flatten()
     unique_patients = np.unique(patients)
@@ -246,10 +243,7 @@ if __name__ == '__main__':
 
     # Create an instance of the CustomDataset to trigger the print
     dataset = CustomDataset(csv_input_file, csv_label_file)
-    train_data, test_data = split_data(dataset.data, perc_test=0.1)
 
-    print('Train data:', train_data['patients'])
-    print('Test data:', test_data['patients'])
 
     # Print invalid videos info
     print(f'\n\nThe list of invalid videos is: {dataset.invalid_video_info}')
