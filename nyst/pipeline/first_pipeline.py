@@ -19,7 +19,22 @@ class FirstPipeline:
         self.frame_annotator = FirstFrameAnnotator()
         self.speed_extractor = FirstSpeedExtractor()
         
-    def apply(self, frame, count_from_lastRoiupd, idx_frame, threshold=100, update_roi=True):
+    def apply(self, frame, count_from_lastRoiupd:int, idx_frame:int, threshold:int=100, update_roi:bool=True) -> tuple:
+        '''
+        Applies the eye detection and pupil position extraction on a given video frame.
+
+        Arguments:
+        - frame: The current video frame to process.
+        - count_from_lastRoiupd (int): The counter indicating the number of frames since the last ROI update.
+        - idx_frame (int): The index of the current frame in the video sequence.
+        - threshold (int): The maximum number of frames to wait before forcing an ROI update (default is 100).
+        - update_roi (bool): A boolean flag indicating whether to update the eye ROI (default is True).
+
+        Returns:
+        - left_pupil_absolute_position: The absolute (x, y) position of the left pupil in the frame.
+        - right_pupil_absolute_position: The absolute (x, y) position of the right pupil in the frame.
+        - count_from_lastRoiupd: The updated counter indicating the number of frames since the last ROI update.
+        '''
         # Update the eye ROI if specified and if the count is less than a threshold
         if update_roi and count_from_lastRoiupd < threshold:
             try:
@@ -29,13 +44,20 @@ class FirstPipeline:
                 # Unpack the ROIs for the left and right eyes
                 left_eye_roi = rois.get_left_eye_roi()
                 right_eye_roi = rois.get_right_eye_roi()
-               
+
+                # Control of the roy
+                if left_eye_roi is not None and right_eye_roi is not None:
+                     count_from_lastRoiupd +=1
+                else:
+                    count_from_lastRoiupd = 0 # Counter last latch update
+
                 # Save the ROIs to latch variables to have two distinct pipeline blocks
                 self.left_eye_roi_latch.set(left_eye_roi)
                 self.right_eye_roi_latch.set(right_eye_roi)
                 
-                count_from_lastRoiupd = 0 # Counter last latch update
+                #count_from_lastRoiupd = 0 # Counter last latch update
                 # print("Normal: ", count_from_lastRoiupd, end="\t\t")
+
             except Exception as e:
                 # Increment count and print exception details if an error occurs
                 count_from_lastRoiupd+=1
@@ -43,7 +65,7 @@ class FirstPipeline:
                 print(e)
             
         else:
-            raise RuntimeError('Unable to find a face in the last 30fps')
+            raise RuntimeError(f'Unable to find a face in the last {threshold} frames')
         
         # Retrieve the ROI values from the latch variables
         left_eye_roi = self.left_eye_roi_latch.get()
@@ -72,8 +94,8 @@ class FirstPipeline:
         # cv2.imshow('Right eye segmented',right_eye_frame)
 
         # Detect the relative position of the pupil in each eye frame
-        left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame, "left_treshold")
-        right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame, "left_treshold")
+        left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame)
+        right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame)
         
         # Convert the relative pupil positions to absolute positions based on the ROI 
         left_pupil_absolute_position = self.pupil_detector.relative_to_absolute(left_pupil_relative_position, left_eye_roi) # (X,Y) Absolute position of the left eye
@@ -81,7 +103,17 @@ class FirstPipeline:
         
         return left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd
 
-    def run(self, video_path):
+    def run(self, video_path:str, output_path:str, idx:int) -> dict:
+        '''
+        Processes a video to extract the absolute positions of the left and right eye pupils,
+        annotates each frame, and calculates the speed of pupil movements.
+
+        Arguments:
+        - video_path (str): The path to the video file to be processed.
+
+        Returns:
+        - output_dict (dict): A dictionary containing the extracted positions and speed information for the left and right eye pupils.
+        '''
         # Initialize lists to store absolute positions of left and right eye pupils
         left_eye_absolute_positions = []
         right_eye_absolute_positions = []
@@ -92,14 +124,9 @@ class FirstPipeline:
         # Get the frames per second (FPS) and resolution of the video
         fps = cap.get(cv2.CAP_PROP_FPS)
         resolution = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-        
-        '''
-        if self.video_preprocessing.invert_resolution:
-            resolution = resolution[::-1]
-        '''
-
+   
         # Create a video writer object to save the annotated video
-        annotated_video_writer = cv2.VideoWriter("annotated_video.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, resolution)
+        annotated_video_writer = cv2.VideoWriter(f"{output_path}/annotated_video_{idx}.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, resolution)
         count_from_lastRoiupd = 0
 
         # Read the first frame of the video
@@ -113,7 +140,7 @@ class FirstPipeline:
             raise RuntimeError("Error reading video")
         
         # Apply the processing method for absolute position pupil estimation to the frame
-        left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,count)   # PROBLEMA PARTE DA QUI
+        left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,count)
 
         # Append the positions to the respective lists (list of tuple of absolute x,y coordinates)
         left_eye_absolute_positions.append(left_pupil_absolute_position)
@@ -195,7 +222,18 @@ class FirstPipeline:
         
         return output_dict
     
-    def videos_feature_extractor(self, input_folder, output_path):
+    # xtracts features from all videos
+    def videos_feature_extractor(self, input_folder:str, output_path:str) -> None:
+        '''
+        Extracts features from videos in a folder and saves them to a CSV file.
+
+        Arguments:
+        - input_folder (str): The path to the folder containing the videos to be processed.
+        - output_path (str): The path to the folder where to save the CSV file with the extracted features.
+
+        Returns:
+        - Saves the features in a CSV file.
+        '''
         # Path for the video_features CSV file
         output_features_path = os.path.join(output_path, 'video_features.csv')
         # Verify if the file already exists
@@ -214,12 +252,12 @@ class FirstPipeline:
                 ])  
 
             # Iterate through all video files in the input folder
-            for video in os.listdir(input_folder):
+            for idx, video in enumerate(os.listdir(input_folder)):
                 if video.endswith('.mp4'):  # Add other video formats if needed
                     video_path = os.path.join(input_folder, video)
                     try:
                         # Run the processing on the video
-                        output_dict = self.run(video_path)
+                        output_dict = self.run(video_path, output_path, idx)
 
                         # Create a unique path for the output video name
                         output_video_relative_path = os.path.normpath(os.path.join("videos", video)) # Create the relative path for the output video
@@ -260,5 +298,5 @@ class FirstPipeline:
                         print(f"Failed to process {video}: {e}")
 
             # Completion message
-            print("Video processing completed successfully.")
+            print("\nVideo processing completed successfully.")
 

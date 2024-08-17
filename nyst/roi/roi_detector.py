@@ -13,12 +13,30 @@ from .roi import FirstRoi
 
 # Class that defines a method to calculate the ROI boxes of each eye separately.
 class FirstEyeRoiDetector:
-    def __init__(self, backend): # You can use backend=yolov8 for face detection.
-        self.backend = backend 
-        self.last_left_eye = None # For no face detected case
-        self.last_right_eye = None # For no face detected case
+    '''
+    Class that defines a method to calculate the ROI (Region of Interest) boxes for each eye separately.
 
-    def apply(self, frame, idx_frame): 
+    Attributes:
+    - backend: The face detection backend to be used (e.g., yolov8).
+    - last_left_eye: Stores the last known position of the left eye for cases when the face is not detected.
+    - last_right_eye: Stores the last known position of the right eye for cases when the face is not detected.
+    '''
+    def __init__(self, backend): # You can use backend=yolov8 for face detection
+        self.backend = backend 
+        self.last_left_eye = None
+        self.last_right_eye = None
+
+    def apply(self, frame, idx_frame:int):
+        """
+        Applies the face detection and calculates the ROI boxes for each eye in the given frame.
+
+        Arguments:
+        - frame: The current video frame to process.
+        - idx_frame: The index of the current frame in the video sequence.
+
+        Returns:
+        - FirstRoi: An object containing the ROI boxes for the left and right eyes.
+        """
         try:
             # Define the target size for the face detection
             target_size = (frame.shape[0], frame.shape[1])
@@ -36,35 +54,36 @@ class FirstEyeRoiDetector:
                     # Update the last known positions
                     self.last_left_eye = left_eye
                     self.last_right_eye = right_eye 
-                    print("OPZ: 1")
                 else:
                     if left_eye is None and right_eye is None: # Both eyes are not detected
                         left_eye = self.last_left_eye
                         right_eye = self.last_left_eye
-                        print("OPZ: 2")
+                    
                     elif left_eye is None: # Left eye is not detected
                         left_eye = self.last_left_eye
                         self.last_right_eye = right_eye
-                        print("OPZ: 3")
+
                     else: # Right eye is not detected
                         right_eye = self.last_right_eye
                         self.last_left_eye = left_eye
-                        print("OPZ: 4")
+                       
             else: # Case of no detected face and middle
                 print("No faces detected, using last known positions.")
+                '''
                 if idx_frame == 0: # First frame without detected faces Case
                     self.last_left_eye = None
                     self.last_right_eye = None
-                    print("OPZ: 5")
                     return FirstRoi(None, None)
+                
                 elif self.last_left_eye is not None and self.last_right_eye is not None: # Previous position detected Case
                     left_eye = self.last_left_eye
                     right_eye = self.last_right_eye
-                    print("OPZ: 6")
+                
+                    
                 else: # Previous position does not detected Case
-                    print("No previous eye positions available.")
-                    print("OPZ: 7")
-                    return FirstRoi(None, None)
+                '''
+                #print("No previous eye positions available.")
+                return FirstRoi(None, None)
         
             # Draw the points on the image
             cv2.circle(frame, left_eye, 5, (0, 255, 0), -1)  # -1 for filled circle
