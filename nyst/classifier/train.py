@@ -1,4 +1,3 @@
-import os
 import copy
 from tqdm import tqdm
 import torch
@@ -9,90 +8,6 @@ import torch.nn.init as init
 from sklearn.model_selection import KFold, ParameterGrid
 from classifier import NystClassifier
 from dataset import CustomDataset
-
-
-### Classical Training Function ###
-def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=25, device='cuda', patience=5):
-    model = model.to(device)
-
-    best_model_wts = copy.deepcopy(model.state_dict())
-    best_acc = 0.0
-    train_stats = {'loss': [], 'accuracy': []}
-    val_stats = {'loss': [], 'accuracy': []}
-
-    epochs_no_improve = 0
-
-    for epoch in range(num_epochs):
-        print(f'Epoch {epoch}/{num_epochs - 1}')
-        print('-' * 10)
-
-        # Ogni epoca ha una fase di training e una di validazione
-        for phase in ['Train', 'Val']:
-            if phase == 'Train':
-                model.train()  # Imposta il modello in modalità training
-                data_loader = train_loader
-            else:
-                model.eval()  # Imposta il modello in modalità evaluation
-                data_loader = val_loader
-
-            running_loss = 0.0
-            running_corrects = 0
-
-            # Itera sui dati
-            for inputs, labels in data_loader:
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-
-                # Reset dei gradienti
-                optimizer.zero_grad()
-
-                # Solo nella fase di training esegue la forward e backward pass
-                with torch.set_grad_enabled(phase == 'Train'):
-                    outputs = model(inputs)
-                    loss = criterion(outputs, labels)
-                    preds = outputs >= 0.5
-
-                    if phase == 'Train':
-                        loss.backward()
-                        optimizer.step()
-
-                # Statistiche
-                running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == labels.data)
-
-            epoch_loss = running_loss / len(data_loader.dataset)
-            epoch_acc = running_corrects.double() / len(data_loader.dataset)
-
-            print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
-
-            if phase == 'Train':
-                train_stats['loss'].append(epoch_loss)
-                train_stats['accuracy'].append(epoch_acc.item())
-            else:
-                val_stats['loss'].append(epoch_loss)
-                val_stats['accuracy'].append(epoch_acc.item())
-
-                # Controlla per l'early stopping
-                if epoch_acc > best_acc:
-                    best_acc = epoch_acc
-                    best_model_wts = copy.deepcopy(model.state_dict())
-                    epochs_no_improve = 0
-                else:
-                    epochs_no_improve += 1
-
-                if epochs_no_improve >= patience:
-                    print('Early stopping')
-                    model.load_state_dict(best_model_wts)
-                    return model, train_stats, val_stats
-
-    print(f'Best val Acc: {best_acc:.4f}')
-
-    # Carica i pesi migliori del modello
-    model.load_state_dict(best_model_wts)
-
-
-    return model, train_stats, val_stats
-
 
 
 # Initialisation parameters function
@@ -315,84 +230,38 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
     # Save the best model
     torch.save(best_model.state_dict(), save_path) # WARNING: the resulting file will be specific to the version of PyTorch used, potentially making portability of the model between different versions of PyTorch difficult.
     
-    return results, best_model
-
-
-def main_classic():
-    # Define our model, loss criteria and optimiser
-    model = NystClassifier()
-    initialize_parameters(model)
-    criterion = nn.BCELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-    # Specify the dataset path
-    data_root = 'data'
-
-    # Specifiy augmentation
-    train_transform = None
-    val_transform = None
-
-    # Create the training and validation datasets paths
-    train_dir = os.path.join(data_root, 'train')
-    val_dir = os.path.join(data_root, 'val')
-    train_csv = os.path.join(data_root, 'train_labels.csv')
-    val_csv = os.path.join(data_root, 'val_labels.csv')
-
-    # Create the training and validation datasets
-    train_dataset = CustomDataset(csv_file=train_csv, root_dir=train_dir, transform=train_transform)
-    val_dataset = CustomDataset(csv_file=val_csv, root_dir=val_dir, transform=val_transform)
-
-    # Create the dataloader for training and validation datasets
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-
-    # Start the training
-    trained_model, train_stats, val_stats = train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=25, device='cuda', patience=5)
+    return results
 
 
 
-
-# Main for the cross-validation version 
-def main():
+# Function to perform the training of the full net 
+def training_net(csv_input_file, csv_label_file, save_path, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds):
     
     # Define our model, loss criteria and optimiser
     model = NystClassifier()
-    initialize_parameters(model) # Initilise model parameters in a specific manner
-    
-    # Specify the dataset path
-    csv_input_file = 'D:/nyst_labelled_videos/video_features.csv'
-    csv_label_file = 'D:/nyst_labelled_videos/labels.csv'
-    save_path = 'D:/nyst_labelled_videos/best_model.pth'
-
-    # Specifiy transformtion
-    transform = None
-    
+    initialize_parameters(model) # Initilize model parameters in a specific manner
+           
     # Define the device
-    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda::0') if torch.cuda.is_available() else torch.device('cpu')
 
     # Create the training and validation datasets object
     dataset = CustomDataset(csv_input_file, csv_label_file)
 
     # Parameters to be tested during the training phase
     param_grid = {
-            'batch_size': [4, 8, 16],
-            'lr': [0.001, 0.0001],
-            'optimizer': ['Adam', 'SGD'],
-            'criterion': ['BCELoss','MSELoss'],
-            'threshold_correct': [0.5, 0.6, 0.7],
-            'patience': [5, 10],
-            'num_epochs': [50, 100],
+            'batch_size': batch_size,
+            'lr': lr,
+            'optimizer': optimizer,
+            'criterion': criterion,
+            'threshold_correct': threshold_correct,
+            'patience': patience,
+            'num_epochs': num_epochs,
         }
     
 
     # Create the training and validation datasets and convert numpy arrays to PyTorch tensors
     train_input_tensor = torch.tensor(dataset.train_signals, dtype=torch.float32)
     train_labels_tensor = torch.tensor(dataset.train_labels, dtype=torch.float32)
-    test_input_tensor = torch.tensor(dataset.test_signals, dtype=torch.float32)
-    test_labels_tensor = torch.tensor(dataset.test_labels, dtype=torch.float32)
-
-    # Desired number of folds
-    k_folds = 5
                
     # Calculate the number of samples per fold
     n_samples = len(train_input_tensor)
@@ -402,16 +271,10 @@ def main():
     train_input_truncated = train_input_tensor[:fold_size * k_folds]
     train_labels_truncated = train_labels_tensor[:fold_size * k_folds]
 
-    # Create TensorDataset for train and test sets
+    # Create Truncate Dataset TensorDataset for train and test sets (avoid different fold size problems)
     train_dataset_truncated = TensorDataset(train_input_truncated, train_labels_truncated)
-    test_dataset = TensorDataset(test_input_tensor, test_labels_tensor)
-
-    # Truncate the data to be a multiple of the fold size (avoid different fold size problems)
-    #train_dataset_truncated = train_dataset[:fold_size * k_folds]
 
     # Start the training
-    results, best_model = cross_validate_model(model, train_dataset_truncated, param_grid, device, save_path, k_folds)
+    results = cross_validate_model(model, train_dataset_truncated, param_grid, device, save_path, k_folds)
 
-# Start the code execution
-if __name__ == "__main__":
-    main()
+    return results

@@ -1,54 +1,15 @@
 import os
-import pickle
 from collections import deque
 import csv
-import argparse
-
 import cv2
 
 # Define supported video file extensions
 video_extensions = ['.mp4', '.mkv']
 
-# Function to parse command-line arguments with default values
-def parse_args(default_args):
-    root = default_args['input_dir']
-    output_path = default_args['output_dir']
-    clip_duration = default_args['clip_duration']
-    overlapping = default_args['overlapping']
-
-    parser = argparse.ArgumentParser(description='Label videos')
-    parser.add_argument('--input_dir', type=str, default=root, help='Input directory')
-    parser.add_argument('--output_dir', type=str, default=output_path, help='Output directory')
-    parser.add_argument('--clip_duration', type=int, default=clip_duration, help='Clip duration in seconds')
-    parser.add_argument('--overlapping', type=int, default=overlapping, help='Overlapping in seconds')
-
-    return parser.parse_args()
 
 # Main function to handle videos labelling process
-def main():
+def labelling_videos(input_path, output_path, clip_duration=10, overlapping=8):
 
-    ### VIDEO SETTINGS ###
-
-    # Default settings
-    root = 'D:/nyst_flatten_video'
-    output_path = 'D:/nyst_labelled_videos'
-    clip_duration = 10 # in seconds
-    overlapping = 8 # in seconds
-
-    # Default arguments dictionary
-    default_args = { 'input_dir': root, 'output_dir': output_path, 'clip_duration': clip_duration, 'overlapping': overlapping }
-
-    # Parse command-line arguments
-    args = parse_args(default_args)
-
-    root = args.input_dir
-    output_path = args.output_dir
-    clip_duration = args.clip_duration
-    overlapping = args.overlapping
-
-    
-    ### LABELLING ###
-    
     # List to store video labels
     labels = [] 
 
@@ -56,7 +17,7 @@ def main():
     os.makedirs(os.path.join(output_path, "videos"), exist_ok=True)
 
     # Get the list of ordered video names from the input directory
-    videos = os.listdir(root)
+    videos = os.listdir(input_path)
     videos = sorted([video for video in videos if any(video.endswith(ext) for ext in video_extensions)])
     
     # Loop through the list of videos
@@ -67,7 +28,7 @@ def main():
         cv2.resizeWindow('Frame', 800, 600)
         
         # Create the video path
-        video_path = os.path.join(root, video)
+        video_path = os.path.join(input_path, video)
 
         # Open the video file
         cap = cv2.VideoCapture(video_path)
@@ -103,7 +64,7 @@ def main():
 
             # Loop over the frames in a clip
             for i in range(clip_frames):
-                if clip_id > 1 and i < overlapping * fps: #############################################################################  SECONDO ME E' >= 
+                if clip_id > 1 and i < overlapping * fps:  
                     # Use frames from the overlapping queue if it's not the first clip and within the overlapping range
                     frame = overlapping_queue.popleft()
                 else:
@@ -206,6 +167,3 @@ def main():
             writer.writerow(['video', 'label'])  # write header only if file does not exist
         writer.writerows(labels)
 
-
-if __name__ == "__main__":
-    main()

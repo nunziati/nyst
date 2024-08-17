@@ -1,0 +1,61 @@
+                                                  ############################################################
+
+                                                  #                  VIDEO LABELLING STEP
+
+                                                  ############################################################
+
+# PATHS
+input_folder_lab: 
+    'D:/nyst_video_cartelle'
+flattened_folder_lab: 
+    'D:/nyst_flatten_video'  
+output_folder_lab:
+    'D:/nyst_labelled_videos'
+
+# VALUES CONFIGURATION
+clip_duration:
+    10
+overlapping:
+    8
+
+                                                  ############################################################
+
+                                                  #             VIDEO FEATURES EXTRACTION STEP
+
+                                                  ############################################################
+# PATHS
+input_folder_extr:
+    'D:/nyst_labelled_videos/test'
+output_folder_extr:
+    'D:/nyst_labelled_videos'
+  
+                                                  ############################################################
+
+                                                  #                TRAINING FULL NET STEPS
+
+                                                  ############################################################
+# PATHS
+csv_input_file:
+    'D:/nyst_labelled_videos/video_features.csv'
+csv_label_file:
+    'D:/nyst_labelled_videos/labels.csv'
+save_path:
+    'D:/nyst_labelled_videos/best_model.pth'
+
+# VALUES CONFIGURATION
+batch_size:
+    [4, 8, 16]
+lr:
+    [0.001, 0.0001]
+optimizer:
+    ['Adam', 'SGD']
+criterion:
+    ['BCELoss','MSELoss']
+threshold_correct:
+    [0.5, 0.6, 0.7]
+patience:
+    [5, 10]
+num_epochs:
+    [50, 100]
+k_folds:
+    5
