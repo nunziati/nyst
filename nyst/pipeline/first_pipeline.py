@@ -2,11 +2,17 @@ import cv2
 import numpy as np
 import os
 import csv
+import sys
+
+# Add the 'code' directory to the PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from nyst.roi import FirstRegionSelector, FirstEyeRoiDetector, FirstEyeRoiSegmenter
 from nyst.utils import FirstLatch
 from nyst.pupil import ThresholdingPupilDetector
 from nyst.analysis import FirstSpeedExtractor
 from nyst.visualization import FirstFrameAnnotator
+from nyst.preprocessing import PreprocessingSignalsVideos
 
 class FirstPipeline:
     def __init__(self):
@@ -16,6 +22,7 @@ class FirstPipeline:
         self.left_eye_roi_latch = FirstLatch()
         self.right_eye_roi_latch = FirstLatch()
         self.pupil_detector = ThresholdingPupilDetector(threshold=50)
+        self.preprocess = PreprocessingSignalsVideos()
         self.frame_annotator = FirstFrameAnnotator()
         self.speed_extractor = FirstSpeedExtractor()
         
@@ -41,15 +48,27 @@ class FirstPipeline:
                 # Compute the ROI for the left and right eyes
                 rois = self.eye_roi_detector.apply(frame, idx_frame)
     
-                # Unpack the ROIs for the left and right eyes
-                left_eye_roi = rois.get_left_eye_roi()
-                right_eye_roi = rois.get_right_eye_roi()
+                # Check if the ROI is a None Object
+                if rois is not None:
+                    # Unpack the ROIs for the left and right eyes
+                    left_eye_roi = rois.get_left_eye_roi()
+                    right_eye_roi = rois.get_right_eye_roi()
 
-                # Control of the roy
-                if left_eye_roi is not None and right_eye_roi is not None:
-                     count_from_lastRoiupd +=1
+                    # Control of the roy
+                    if left_eye_roi is not None and right_eye_roi is not None:
+                        count_from_lastRoiupd = 0
+                    else:
+                        count_from_lastRoiupd += 1
+                        # Take the last valid value
+                        left_eye_roi = self.left_eye_roi_latch.get()
+                        right_eye_roi = self.right_eye_roi_latch.get()
+                
                 else:
-                    count_from_lastRoiupd = 0 # Counter last latch update
+                    # Handle the case where rois is None
+                    count_from_lastRoiupd += 1
+                    # Take the last valid value
+                    left_eye_roi = self.left_eye_roi_latch.get()
+                    right_eye_roi = self.right_eye_roi_latch.get()
 
                 # Save the ROIs to latch variables to have two distinct pipeline blocks
                 self.left_eye_roi_latch.set(left_eye_roi)
@@ -118,6 +137,9 @@ class FirstPipeline:
         left_eye_absolute_positions = []
         right_eye_absolute_positions = []
 
+        # Creare la cartella solo se non esiste già
+        os.makedirs(f"{output_path}/Annotated_videos", exist_ok=True)
+
         # Open the video file   
         cap = cv2.VideoCapture(video_path)
 
@@ -126,7 +148,7 @@ class FirstPipeline:
         resolution = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
    
         # Create a video writer object to save the annotated video
-        annotated_video_writer = cv2.VideoWriter(f"{output_path}/annotated_video_{idx}.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, resolution)
+        annotated_video_writer = cv2.VideoWriter(f"{output_path}/Annotated_videos/annotated_video_{idx}.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, resolution)
         count_from_lastRoiupd = 0
 
         # Read the first frame of the video
@@ -134,6 +156,9 @@ class FirstPipeline:
         
         # Frame counter
         count = 0
+
+        # Print the frame counter
+        print("Frame:", count)
 
         if ret is False:
             # Raise an error if the frame could not be read
@@ -145,6 +170,7 @@ class FirstPipeline:
         # Append the positions to the respective lists (list of tuple of absolute x,y coordinates)
         left_eye_absolute_positions.append(left_pupil_absolute_position)
         right_eye_absolute_positions.append(right_pupil_absolute_position)
+        print(left_pupil_absolute_position, right_pupil_absolute_position) #Print the positions
         
         # Annotate the frame with the pupil positions
         annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
@@ -171,11 +197,11 @@ class FirstPipeline:
             print("Frame:", count)
             # Apply the processing method to the frame
             left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,count)
-           
+
             # Append the positions to the respective lists
             left_eye_absolute_positions.append(left_pupil_absolute_position)
             right_eye_absolute_positions.append(right_pupil_absolute_position)
-            #print(left_pupil_absolute_position, right_pupil_absolute_position) #Print the positions
+            print(left_pupil_absolute_position, right_pupil_absolute_position) #Print the positions
 
             # Annotate the frame with the pupil positions
             annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
@@ -196,8 +222,12 @@ class FirstPipeline:
         annotated_video_writer.release()
 
         # Convert the positions lists to numpy arrays
-        left_eye_absolute_positions = np.array(left_eye_absolute_positions, dtype=np.float32)
-        right_eye_absolute_positions = np.array(right_eye_absolute_positions, dtype=np.float32)
+        left_eye_absolute_positions_dirty = np.array(left_eye_absolute_positions)
+        right_eye_absolute_positions_dirty = np.array(right_eye_absolute_positions)
+
+        # Ensures nan values are properly handled
+        left_eye_absolute_positions = self.preprocess.interpolate_nans(left_eye_absolute_positions_dirty)
+        right_eye_absolute_positions = self.preprocess.interpolate_nans(right_eye_absolute_positions_dirty)
 
         # Extract speed information for the left and right eyes
         left_eye_speed_dict = self.speed_extractor.apply(left_eye_absolute_positions, fps)
@@ -256,6 +286,7 @@ class FirstPipeline:
                 if video.endswith('.mp4'):  # Add other video formats if needed
                     video_path = os.path.join(input_folder, video)
                     try:
+                        print(f'\n\nFeature extraction of the video: {video}')
                         # Run the processing on the video
                         output_dict = self.run(video_path, output_path, idx)
 

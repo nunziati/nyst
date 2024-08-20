@@ -62,6 +62,7 @@ class FirstEyeRoiSegmenter:
         # Create a masked version of the eye frame
         eye_frame_masked = eye_frame.copy()
         eye_frame_masked[prediction_mask == 0] = np.array( [255,255,255])
+        
         # Resize the masked frame back to the original size
         eye_frame_masked = cv2.resize(eye_frame_masked, original_size)
 

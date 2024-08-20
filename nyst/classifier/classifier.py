@@ -1,6 +1,11 @@
-from tunedCNN_time import CNNfeatureExtractorTime
+import sys
+import os
 import torch.nn as nn
 
+# Add 'code' directory to PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from nyst.classifier.tunedCNN_time import CNNfeatureExtractorTime
 
 class NystClassifier(nn.Module):
     def __init__(self):

@@ -6,8 +6,14 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset, Subset
 import torch.nn.init as init
 from sklearn.model_selection import KFold, ParameterGrid
-from classifier import NystClassifier
-from dataset import CustomDataset
+import sys
+import os
+
+# Add 'code' directory to PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from nyst.classifier.classifier import NystClassifier
+from nyst.classifier.dataset import CustomDataset
 
 
 # Initialisation parameters function

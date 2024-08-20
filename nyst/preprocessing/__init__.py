@@ -1,6 +1,6 @@
 r"""init file for roi package."""
 
-from .video_preprocess import VideoProcessor
+from .signalVideo_preprocess import PreprocessingSignalsVideos
 
 
-__all__ = ["VideoProcessor"]
+__all__ = ["PreprocessingSignalsVideos"]

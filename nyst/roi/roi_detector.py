@@ -47,8 +47,8 @@ class FirstEyeRoiDetector:
             if faces: # Detected face Case
                 face_obj = faces[0]
                 # Extract the coordinates of the left eye and right eye (one point for each eye)
-                left_eye = np.array(face_obj['facial_area']['left_eye'], dtype=int)
-                right_eye = np.array(face_obj['facial_area']['right_eye'], dtype=int)
+                left_eye = np.array(face_obj['facial_area']['left_eye'])
+                right_eye = np.array(face_obj['facial_area']['right_eye'])
                 
                 if left_eye is not None and right_eye is not None: # Both eyes detected
                     # Update the last known positions
@@ -68,41 +68,54 @@ class FirstEyeRoiDetector:
                         self.last_left_eye = left_eye
                        
             else: # Case of no detected face and middle
-                print("No faces detected, using last known positions.")
-                '''
-                if idx_frame == 0: # First frame without detected faces Case
-                    self.last_left_eye = None
-                    self.last_right_eye = None
-                    return FirstRoi(None, None)
-                
-                elif self.last_left_eye is not None and self.last_right_eye is not None: # Previous position detected Case
-                    left_eye = self.last_left_eye
-                    right_eye = self.last_right_eye
-                
-                    
-                else: # Previous position does not detected Case
-                '''
-                #print("No previous eye positions available.")
+                print("No faces detected, use last known positions.")
                 return FirstRoi(None, None)
         
-            # Draw the points on the image
-            cv2.circle(frame, left_eye, 5, (0, 255, 0), -1)  # -1 for filled circle
-            cv2.circle(frame, right_eye, 5, (0, 255, 0), -1)
+            # Check if the eye coordinates are valid
+            if left_eye is not None and right_eye is not None:
+                # Draw the points on the image
+                try:
+                    cv2.circle(frame, tuple(left_eye), 5, (0, 255, 0), -1)  # -1 for filled circle
+                    cv2.circle(frame, tuple(right_eye), 5, (0, 255, 0), -1)
+                except Exception as draw_exception:
+                    pass
             
-            # Mostra l'immagine con i punti
+            # Show image with dots
             #cv2.imshow("Image with Points", frame)
             
             # Approximation of the Euclidean distance between the two extreme points of the rectangles
             distance = int(np.linalg.norm(right_eye - left_eye))
+
+            # Definizione delle distanze orizzontali e verticali
+            half_distance_w = distance // 4  # Distanza orizzontale (larghezza)
+            half_distance_h_above = distance // 8  # Distanza verticale sopra l'occhio (più piccola)
+            half_distance_h_below = distance // 4   # Distanza verticale sotto l'occhio (più grande)
+
+            # Definizione del vettore che rappresenta la distanza orizzontale
+            half_distance_w_vec = np.array([half_distance_w, 0])
+
+            # Creazione dei vettori per la distanza sopra e sotto l'occhio
+            half_distance_above = np.array([0, half_distance_h_above])
+            half_distance_below = np.array([0, half_distance_h_below])
+
+            # Definizione delle ROI per l'occhio sinistro
+            left_eye_roi_top_left = left_eye - half_distance_w_vec - half_distance_above
+            left_eye_roi_bottom_right = left_eye + half_distance_w_vec + half_distance_below
+            left_eye_roi = np.concatenate([left_eye_roi_top_left, left_eye_roi_bottom_right])
+
+            # Definizione delle ROI per l'occhio destro
+            right_eye_roi_top_left = right_eye - half_distance_w_vec - half_distance_above
+            right_eye_roi_bottom_right = right_eye + half_distance_w_vec + half_distance_below
+            right_eye_roi = np.concatenate([right_eye_roi_top_left, right_eye_roi_bottom_right])
             
-            # Distances Augmentation 
+            '''# Distances Augmentation 
             half_distance_w = distance // 4
-            half_distance_h = distance // 6
+            half_distance_h = distance // 8
             half_distance = np.array([half_distance_w, half_distance_h])
             
             # Definition of the left and right eyes ROI
             left_eye_roi = np.concatenate([left_eye - half_distance, left_eye + half_distance])
-            right_eye_roi = np.concatenate([right_eye - half_distance, right_eye + half_distance])
+            right_eye_roi = np.concatenate([right_eye - half_distance, right_eye + half_distance])'''
             
             return FirstRoi(left_eye_roi, right_eye_roi)
         
