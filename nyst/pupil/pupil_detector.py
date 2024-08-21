@@ -33,8 +33,8 @@ class ThresholdingPupilDetector:
         gray_frame_copy = gray_frame.copy()
 
         # Increase frame contrast
-        alpha = 2  # Contrast factor
-        beta = 0     # Lightness factor
+        alpha = 2.2  # Contrast factor
+        beta = 0.     # Lightness factor
         high_contrast_gray = cv2.convertScaleAbs(gray_frame_copy, alpha=alpha, beta=beta)
         #cv2.imshow('High Contrast Gray', high_contrast_gray)
 

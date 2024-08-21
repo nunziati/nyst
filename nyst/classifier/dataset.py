@@ -16,13 +16,13 @@ class CustomDataset(Dataset):
         self.merged_data = pd.merge(self.input_data, self.label_data, on='video', how='left')
         # print(self.merged_data.head(-1))
 
-        # Applica la funzione di preprocessing se fornita
+        # Applies the preprocessing function if provided
         if preprocess:
             self.data = preprocess(self.merged_data)
         else:
             self.data = self.merged_data
 
-        # Exctraction data
+        # Exctract data into a dictionary
         self.data = self.exctraction_values(self.data)
 
         # Filter the invalid data
@@ -68,84 +68,175 @@ class CustomDataset(Dataset):
 
         return signal, label
 
-# Extract the input/label info from the csv file
+    # Extract the input/label info from the csv file
     def exctraction_values(self, merged_data):
-            """
-            Preprocessing di default dei dati uniti. Qui viene implementata la logica di base
-            per estrarre i segnali, le risoluzioni, i pazienti, i campioni e le etichette.
-            """
-            # Estrai i segnali
-            signals_str = merged_data[['left_position X', 'left_position Y', 
-                               'right_position X', 'right_position Y',
-                               'left_speed X', 'left_speed Y', 
-                               'right_speed X', 'right_speed Y']].values
+        '''
+        Preprocesses the merged data to extract relevant features such as signals, resolutions,
+        patient information, samples, and labels.
+
+        Arguments:
+        - merged_data (pandas.DataFrame): The dataframe containing the merged data. It is expected
+        to contain columns related to positions, speeds, video information, resolutions, and labels.
+
+        Returns:
+        - dict: A dictionary containing the extracted features:
+            - 'signals': A list of lists containing the extracted signal data (position and speed).
+            - 'resolutions': A numpy array of resolutions from the data.
+            - 'patients': A numpy array with patient IDs extracted from the video filenames.
+            - 'samples': A numpy array with detailed sample information including patient ID, video number, and resolution.
+            - 'labels': A numpy array of labels associated with each data entry.
+        '''
+        # Extract signaks
+        signals_str = merged_data[['left_position X', 'left_position Y', 
+                            'right_position X', 'right_position Y',
+                            'left_speed X', 'left_speed Y', 
+                            'right_speed X', 'right_speed Y']].values
+        
+        # Convert strings into lists of float
+        signals = [[parse_float_list(signal) for signal in row] for row in signals_str]
+
+        # Convert the list of list in a numpy array
+        #signals = np.array(signals)
+        
+        # Resolutions extraction
+        resolutions = merged_data['resolution'].to_numpy().reshape(-1, 1)
+
+        # Patient information extraction
+        patients = merged_data['video'].apply(lambda x: x.split('\\')[-1].split('_')[0]) .to_numpy().reshape(-1, 1)
+
+        # Sample and video information extraction
+        samples = merged_data.apply(
+            lambda x: [
+                x['video'].split('\\')[-1].split('_')[0], # Patient number
+                x['video'].split('_')[1],  # Video number
+                x['video'].split('_')[2].split('.')[0],  # Clip number
+                x['resolution']  # Resolution
+            ], 
+            axis=1
+        ).to_numpy()
+
+        # Label extraction
+        labels = merged_data['label'].to_numpy().reshape(-1, 1)
+
+        return {
+            'signals': signals,
+            'resolutions': resolutions,
+            'patients': patients,
+            'samples': samples,
+            'labels': labels
+        }
+
+    # Data filtering
+    def filtering_invalid_data(self, dictionary_input:dict, frames_video:int = 300, zero_threshold:float = 0.2):
+        '''
+        Filters out invalid data/videos based on signal dimensions and zero-speed thresholds, and also removes 
+        entries associated with the same patient, video, and clip number.
+
+        Arguments:
+        - dictionary_input (dict): A dictionary containing the input data.
+        - frames_video (int): The expected number of frames in each signal. Defaults to 300.
+        - zero_threshold (float): The threshold for filtering out signals with excessive zero speeds. Defaults to 0.2 (20%).
+
+        Returns:
+        - tuple:
+            - dict: A dictionary with filtered data, maintaining the original structure but with invalid entries removed.
+            - set: A set containing information about the invalid clip that were filtered out.
+        '''
+
+        # Retrieve the input signal values
+        signals = dictionary_input['signals']
+        samples = dictionary_input['samples']
+        valid_indices = set(range(len(signals)))  # Start with all indices being valid
+        invalid_video_info = []
+        invalid_videos = set()
+
+        # Cycle through all signals
+        for i in range(len(signals)):
             
-            # Convert strings into lists of float
-            signals = [[parse_float_list(signal) for signal in row] for row in signals_str]
+            # Extract the specific signal values
+            row = signals[i]
 
-            # Convert the list of list in a numpy array
-            #signals = np.array(signals)
+            # Split the signals into positions and speeds, and convert the string values into lists of float values
+            positions = [parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
+            speeds = [parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
+                        
+            # Check that the size of the signals meet the threshold
+            dimension_signal = all([len(signal) == frames_video for signal in row])
+                
+            # Check whether zero speeds in the list meets the threshold
+            zero_exceeds_threshold = any((np.sum(np.array(speed) == 0.0) + np.isnan(speed).sum()) / len(speed) > zero_threshold for speed in speeds)
             
-            # Estrai le risoluzioni
-            resolutions = merged_data['resolution'].to_numpy().reshape(-1, 1)
+            # If the signal is invalid, mark the entire video as invalid
+            if zero_exceeds_threshold or not dimension_signal:
+                invalid_videos.add(tuple(samples[i][:3]))  # Tuple of (patient, video, clip number)
+                invalid_video_info.append(samples[i])
+        
+        # Remove invalid videos
+        for i, sample in enumerate(samples):
+            if tuple(sample[:3]) in invalid_videos:
+                valid_indices.discard(i)
 
-            # Estrai le informazioni sui pazienti (questo può dipendere dai tuoi dati)
-            patients = merged_data['video'].apply(lambda x: x.split('\\')[-1].split('_')[0]) .to_numpy().reshape(-1, 1)
+        # Convert valid_indices to a sorted list
+        valid_indices = sorted(list(valid_indices))
 
+        # Filter the dictionary based on valid indices
+        filtered_data = {}
+        for key, value in dictionary_input.items():
+            if key == "signals":
+                # Filter the 'signals' key, which is a list of lists of lists with a critical dimension (dim 2) that cannot allow the transformation into a numpy array
+                filtered_data[key] = [value[i] for i in valid_indices]
+            else:
+                # For the other keys, which are NumPy arrays, use NumPy indexing
+                filtered_data[key] = value[valid_indices]
 
-            # Estrarre campioni e informazioni sui video
-            samples = merged_data.apply(
-                lambda x: [
-                    x['video'].split('\\')[-1].split('_')[0],
-                    x['video'].split('_')[1],  # '001', '002', '001'
-                    x['video'].split('_')[2].split('.')[0],  # '001', '001', '002'
-                    x['resolution']  # 1 se la risoluzione è valida
-                ], 
-                axis=1
-            ).to_numpy()
+        # Signals list of lists to Multidimensional numpy array
+        try:
+            filtered_data['signals'] = np.array(filtered_data['signals'])
+        except Exception as e:
+            print(f"Error while converting signals to numpy array: {e}")
+        
+        return filtered_data, invalid_videos
+    
+    # Data filtering
+    def filtering_invalid_data_o(self, dictionary_input:dict, frames_video:int=300, zero_threshold:float=0.2): # CERCA DI PASSARLO IN MODO DINAMICO frames_video e zero_threshold
+        '''
+        Filters out invalid data/videos based on signal dimensions and zero-speed thresholds.
 
-            # Estrai le etichette
-            labels = merged_data['label'].to_numpy().reshape(-1, 1)
+        Arguments:
+        - dictionary_input (dict): A dictionary containing the input data.
+        - frames_video (int): The expected number of frames in each signal. Defaults to 300.
+        - zero_threshold (float): The threshold for filtering out signals with excessive zero speeds. Defaults to 0.2 (20%).
 
-            return {
-                'signals': signals,
-                'resolutions': resolutions,
-                'patients': patients,
-                'samples': samples,
-                'labels': labels
-            }
+        Returns:
+        - tuple:
+            - dict: A dictionary with filtered data, maintaining the original structure but with invalid entries removed.
+            - list: A list containing information about the invalid videos that were filtered out.
+        '''
 
-    # Data filtering invalid videos/ data
-    def filtering_invalid_data(self, dictionary_input, frames_video=300, nan_threshold=0.2, zero_threshold=0.2): # CERCA DI PASSARLO IN MODO DINAMICO
-              
         # Retrieve the input signal values
         signals = dictionary_input['signals']
         valid_indices = []
         invalid_video_info = []
     
+    
+        # Cycle through all signals
         for i in range(len(signals)):
+            
             # Extract the specific signal values
             row = signals[i]
 
-            # Split the signals into positions and speeds, and convert thr string value into list of float values
+            # Split the signals into positions and speeds, and convert the string values into lists of float values
             positions = [parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
             speeds = [parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
-            
-            '''pippo = [np.sum(np.array(speed) == 0.0) for speed in speeds]
-            pippo2 = [np.isnan(speed).sum() for speed in speeds]
-            print(f"Number of {i}: {pippo} e {pippo2}")'''
-            
-            # Check the dimension of the signals
+                        
+            # Check that the size of the signals meet the threshold
             dimension_signal = all([len(signal)==frames_video for signal in row])
-        
-            # Check NaN threshold per list
-            nan_exceeds_threshold = any(np.isnan(pos).sum() / len(pos) > nan_threshold for pos in positions) or any(np.isnan(speed).sum() / len(speed) > nan_threshold for speed in speeds)
-            
-            # Check zero speed threshold per list 
+                   
+            # Check whether zero speeds in the list meets the threshold
             zero_exceeds_threshold = any((np.sum(np.array(speed) == 0.0) + np.isnan(speed).sum()) / len(speed) > zero_threshold for speed in speeds)
             
             # Keep this row if it doesn't exceed any threshold
-            if not nan_exceeds_threshold and not zero_exceeds_threshold and dimension_signal:
+            if not zero_exceeds_threshold and dimension_signal:
                 valid_indices.append(i)
             else:
                 # Save the invalid video info
@@ -172,6 +263,15 @@ class CustomDataset(Dataset):
 
 # String to list function
 def parse_float_list(string_value):
+    """
+    Converts a string representation of a list into a Python list of floats, handling 'nan' values.
+
+    Arguments:
+    - string_value (str): A string that represents a list of numerical values, which may include 'nan' as a placeholder for missing values.
+
+    Returns:
+    - float_list (list): A list of floats where 'nan' strings in the input are replaced with Python's float('nan') to represent missing values.
+    """
     # Replace 'nan' with 'null' because json.loads doesn't recognize value nan
     string_value = string_value.replace('nan', 'null')
     # Use json.loads to convert a string to Python list/dictionary
