@@ -89,27 +89,25 @@ class ThresholdingPupilDetector:
             # Fit an ellipse to the largest contour
             ellipse = cv2.fitEllipse(largest_contour)
             
-            # Draw the ellipse on the original frame
-            cv2.ellipse(frame_with_contours, ellipse, (255, 0, 0), 2)
-
-            # The center of the ellipse is the center of the pupil/ iris
-            center = np.array([int(ellipse[0][0]), int(ellipse[0][1])], dtype=np.int32)
-            #cv2.imshow('Bounding Box', frame_with_contours)
+            # Validate ellipse dimensions
+            (center, axes, angle) = ellipse
+            (major_axis, minor_axis) = axes
+            
+            if major_axis > 0 and minor_axis > 0:
+                # Draw the ellipse on the original frame
+                cv2.ellipse(frame_with_contours, ellipse, (255, 0, 0), 2)
+                
+                # The center of the ellipse is the center of the pupil/iris
+                center = np.array([int(center[0]), int(center[1])], dtype=np.int32)
+            else:
+                center = (None, None)  # Invalid ellipse dimensions
 
         else:
-            # Find the box that contain the contours with the largest area
-            (x_min, y_min, w, h) = cv2.boundingRect(contours[0])
-
-            # Display the bounding rectangle
-            cv2.rectangle(frame_with_contours, (x_min, y_min), (x_min + w, y_min + h), (255, 0, 0), 2)
-
-            # Calculate the center of the bounding rectangle
-            center = np.array([x_min + int(w/2), y_min + int(h/2)], dtype=np.int32)
-            #cv2.imshow('Bounding Box', frame_with_contours)
+            center = (None, None) # Invalid ellipse dimensions
 
         cv2.waitKey(1)
 
-        return center   # Return the center of the pupil/iris
+        return center  # Return the center of the pupil/iris
     
     
     def apply_2(self, frame):

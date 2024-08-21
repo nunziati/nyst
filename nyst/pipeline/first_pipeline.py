@@ -117,8 +117,15 @@ class FirstPipeline:
         right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame)
         
         # Convert the relative pupil positions to absolute positions based on the ROI 
-        left_pupil_absolute_position = self.pupil_detector.relative_to_absolute(left_pupil_relative_position, left_eye_roi) # (X,Y) Absolute position of the left eye
-        right_pupil_absolute_position = self.pupil_detector.relative_to_absolute(right_pupil_relative_position, right_eye_roi) # (X,Y) Absolute position of the right eye
+        if left_pupil_relative_position[0] is not None and left_pupil_relative_position[1] is not None:
+            left_pupil_absolute_position = self.pupil_detector.relative_to_absolute(left_pupil_relative_position, left_eye_roi) # (X,Y) Absolute position of the left eye
+        else:
+            left_pupil_absolute_position = (None, None)
+        
+        if right_pupil_relative_position[0] is not None and right_pupil_relative_position[1] is not None:
+            right_pupil_absolute_position = self.pupil_detector.relative_to_absolute(right_pupil_relative_position, right_eye_roi) # (X,Y) Absolute position of the right eye
+        else:
+            right_pupil_absolute_position = (None, None)
         
         return left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd
 
