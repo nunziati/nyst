@@ -4,6 +4,7 @@ import cv2
 from time import sleep
 import os
 import sys
+import traceback
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Imposta il dispositivo GPU desiderato (0, 1, 2, ecc.)
 
 # Aggiungi la directory 'code' al PYTHONPATH
@@ -78,7 +79,8 @@ class FirstEyeRoiDetector:
                     cv2.circle(frame, tuple(left_eye), 5, (0, 255, 0), -1)  # -1 for filled circle
                     cv2.circle(frame, tuple(right_eye), 5, (0, 255, 0), -1)
                 except Exception as draw_exception:
-                    pass
+                    # Print the detailed traceback
+                    traceback.print_exc()
             
             # Show image with dots
             #cv2.imshow("Image with Points", frame)
@@ -121,6 +123,8 @@ class FirstEyeRoiDetector:
         
         except Exception as e:
             print(f"An error occurred: {e}")
+            # Print the detailed traceback
+            traceback.print_exc()
            
 
 
