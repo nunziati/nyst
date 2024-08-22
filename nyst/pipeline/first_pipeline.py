@@ -3,6 +3,7 @@ import numpy as np
 import os
 import csv
 import sys
+import traceback
 
 # Add the 'code' directory to the PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -332,6 +333,8 @@ class FirstPipeline:
                             ])
                     except Exception as e:
                         print(f"Failed to process {video}: {e}")
+                        # Print the detailed traceback
+                        traceback.print_exc()
 
             # Completion message
             print("\nVideo processing completed successfully.")
