@@ -56,14 +56,12 @@ class FirstSpeedExtractor:
 
         # Compute the speed array by iterating over each position
         for i in range(len(positions)):
+            
             pos_start = position_aug[i] # Start position for the current time window
             pos_end = position_aug[(i + time_resolution) - 1] # End position for the current time window
-
-            # Calculate the speed
-            if pos_start is None or pos_end is None or pos_start == 'nan' or pos_end == 'nan':
-                speed[i, :] = [0., 0.] # If either start or end position is None or NaN, set the speed to 0
-            else:
-                speed[i, :] = (pos_end - pos_start) / time_resolution
+            
+            speed[i, :] = (pos_end - pos_start) / time_resolution
+        
         return speed
 
     '''def compute_speed(self, positions, time_resolution):
