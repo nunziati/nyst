@@ -293,7 +293,7 @@ class FirstPipeline:
                 if video.endswith('.mp4'):  # Add other video formats if needed
                     video_path = os.path.join(input_folder, video)
                     try:
-                        print(f'\n\nFeature extraction of the video: {video}')
+                        print(f'\n\nFeature extraction of the video: {video} ----- {idx}')
                         # Run the processing on the video
                         output_dict = self.run(video_path, output_path, idx)
 
@@ -307,26 +307,24 @@ class FirstPipeline:
 
                         # Write the result to the labels CSV file, including resolution
                         for resolution in speed_dict:
-                            # Initialisation lists
-                            left_speed_x = []
-                            left_speed_y = []
-                            right_speed_x = []
-                            right_speed_y = []
+                            # Convert numpy arrays to lists (if needed) and then to strings
+                            left_positions_x = str([pos[0] for pos in left_positions])
+                            left_positions_y = str([pos[1] for pos in left_positions])
+                            right_positions_x = str([pos[0] for pos in right_positions])
+                            right_positions_y = str([pos[1] for pos in right_positions])
 
-                            # Store the speeds
-                            for i in range(len(left_positions)):
-                                left_speed_x.append(speed_dict[resolution]["left"][i][0])
-                                left_speed_y.append(speed_dict[resolution]["left"][i][1])
-                                right_speed_x.append(speed_dict[resolution]["right"][i][0])
-                                right_speed_y.append(speed_dict[resolution]["right"][i][1])
+                            left_speed_x = str([speed_dict[resolution]["left"][i][0] for i in range(len(left_positions))])
+                            left_speed_y = str([speed_dict[resolution]["left"][i][1] for i in range(len(left_positions))])
+                            right_speed_x = str([speed_dict[resolution]["right"][i][0] for i in range(len(right_positions))])
+                            right_speed_y = str([speed_dict[resolution]["right"][i][1] for i in range(len(right_positions))])
 
                             # Store lists as strings in CSV
                             writer.writerow([
                                 output_video_relative_path, resolution,
-                                [pos[0] for pos in left_positions],
-                                [pos[1] for pos in left_positions],
-                                [pos[0] for pos in right_positions],
-                                [pos[1] for pos in right_positions],
+                                left_positions_x,
+                                left_positions_y,
+                                right_positions_x,
+                                right_positions_y,
                                 left_speed_x,
                                 left_speed_y,
                                 right_speed_x,

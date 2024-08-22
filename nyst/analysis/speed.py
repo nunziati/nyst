@@ -2,10 +2,20 @@ import numpy as np
 
 class FirstSpeedExtractor:
     def __init__(self):
-        # Initialize the class with predefined time resolutions
-        self.time_resolutions = [3, 5, 7, 9] # number of frame window resolution
+        # These represent the number of frames over which the speed will be calculate
+        self.time_resolutions = [3, 5, 7, 9] # Frame window resolution
 
-    def apply(self, positions, fps=None):
+    def apply(self, positions:np.array, fps:int=None) -> np.array:
+        '''
+        Calculate speed for the given positions at various time resolutions.
+        
+        Arguments:
+        - positions (np.array): An array of (x, y) coordinates representing positions over frames.
+        - fps (int): Frames per second of the video. If provided, the speed will be adjusted to position/second.
+
+        Returns:
+        - speed_dict (dict): A dictionary where each key is a time resolution and the value is the speed array for that resolution.
+        '''
         # Create an empty dictionary to store speed calculations
         speed_dict = {}
 
@@ -16,11 +26,21 @@ class FirstSpeedExtractor:
 
             # If fps is provided, adjust the speed by multiplying with fps
             if fps is not None:
-                speed_dict[time_resolution] *= fps # units of measurement: position/seconds 
+                speed_dict[time_resolution] *= fps # Units of measurement: position/seconds 
 
         return speed_dict
     
-    def compute_speed(self, positions, time_resolution):
+    def compute_speed(self, positions:np.array, time_resolution:list) -> np.array:
+        '''
+        Compute the speed of positions over a specified time resolution.
+        
+        Arguments:
+        - positions (np.array): An array of (x, y) coordinates representing positions over time.
+        - time_resolution (int): The number of frames over which to calculate the speed.
+
+        Returns:
+        - speed (np.array): A 2D array where each row represents the (x, y) speed at each frame.
+        '''
         # Calculate augmentation factor as half of the time resolution
         aug_factor = time_resolution // 2
 
@@ -28,20 +48,20 @@ class FirstSpeedExtractor:
         head = np.array([positions[0] for _ in range(aug_factor)])
         tail = np.array([positions[-1] for _ in range(aug_factor)])
 
-        # Augment the position array by adding head and tail
+        # Augment the position array by adding the head and tail to ensure the calculation window is valid for all frames.
         position_aug = np.vstack((head, positions, tail))
 
         # Initialize speed array with zeros
         speed = np.zeros((len(positions), 2), dtype=np.float32)  
 
-        # Compute the speed array
+        # Compute the speed array by iterating over each position
         for i in range(len(positions)):
-            pos_start = position_aug[i]
-            pos_end = position_aug[(i + time_resolution) - 1]
+            pos_start = position_aug[i] # Start position for the current time window
+            pos_end = position_aug[(i + time_resolution) - 1] # End position for the current time window
 
-            # If either position is None, set speed to 0
+            # Calculate the speed
             if pos_start is None or pos_end is None or pos_start == 'nan' or pos_end == 'nan':
-                speed[i, :] = [0., 0.]
+                speed[i, :] = [0., 0.] # If either start or end position is None or NaN, set the speed to 0
             else:
                 speed[i, :] = (pos_end - pos_start) / time_resolution
         return speed
