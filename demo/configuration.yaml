@@ -25,7 +25,7 @@ overlapping:
                                                   ############################################################
 # PATHS
 input_folder_extr:
-    'D:/nyst_labelled_videos/test'
+    'D:/nyst_labelled_videos_prove/test'
 output_folder_extr:
     'D:/nyst_labelled_videos'
   
