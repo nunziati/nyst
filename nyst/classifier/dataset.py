@@ -8,13 +8,21 @@ import json
 
 class CustomDataset(Dataset):
     def __init__(self, csv_input_file, csv_label_file, preprocess=None, transform=None):
+        
+        print('Loading a Custom Dataset...')
+        
         # Load the CSV file
         self.input_data = pd.read_csv(csv_input_file)
         self.label_data = pd.read_csv(csv_label_file)
+        
+        # Replace backslash with slash in both dataframes
+        self.input_data['video'] = self.input_data['video'].str.replace('\\', '/')
+        self.label_data['video'] = self.label_data['video'].str.replace('\\', '/')
 
         # Perform the join on the 'video' column
         self.merged_data = pd.merge(self.input_data, self.label_data, on='video', how='left')
-        # print(self.merged_data.head(-1))
+        #print(self.merged_data.head(-1))
+        #print(len(self.merged_data))
 
         # Applies the preprocessing function if provided
         if preprocess:
@@ -25,11 +33,16 @@ class CustomDataset(Dataset):
         # Exctract data into a dictionary
         self.data = self.exctraction_values(self.data)
 
-        # Filter the invalid data
+        # Filter the invalid data             
         self.data, self.invalid_video_info = self.filtering_invalid_data(self.data)
+        print('\t ---> Filtering invalid data step COMPLETED\n')
 
-        # Split the dataset
-        self.train_data, self.test_data = split_data(self.data)
+        #print(len(self.data['signals']))
+        #print(len(self.invalid_video_info)) # Multiply by 4 to obtain the correct number of row
+
+        # Split the dataset        
+        self.train_data, self.test_data = self.split_data(self.data)
+        print('\t ---> Splitting step COMPLETED\n')
 
         # Extract the different components of the two sets
         self.train_signals = self.train_data['signals']
@@ -37,13 +50,16 @@ class CustomDataset(Dataset):
         self.train_patients = self.train_data['patients']
         self.train_samples = self.train_data['samples']
         self.train_labels = self.train_data['labels']
+        #print(len(self.train_signals))
+        #print(np.unique(self.train_patients))
         
         self.test_signals = self.test_data['signals']
         self.test_resolutions = self.test_data['resolutions']
         self.test_patients = self.test_data['patients']
         self.test_samples = self.test_data['samples']
         self.test_labels = self.test_data['labels']
-
+        #print(len(self.test_signals))
+        #print(np.unique(self.test_patients))
 
         # Store the transformation function (if any)
         self.transform = transform
@@ -93,11 +109,8 @@ class CustomDataset(Dataset):
                             'right_speed X', 'right_speed Y']].values
         
         # Convert strings into lists of float
-        signals = [[parse_float_list(signal) for signal in row] for row in signals_str]
+        signals = [[self.parse_float_list(signal) for signal in row] for row in signals_str]
 
-        # Convert the list of list in a numpy array
-        #signals = np.array(signals)
-        
         # Resolutions extraction
         resolutions = merged_data['resolution'].to_numpy().reshape(-1, 1)
 
@@ -157,14 +170,14 @@ class CustomDataset(Dataset):
             row = signals[i]
 
             # Split the signals into positions and speeds, and convert the string values into lists of float values
-            positions = [parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
-            speeds = [parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
+            positions = [self.parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
+            speeds = [self.parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
                         
             # Check that the size of the signals meet the threshold
             dimension_signal = all([len(signal) == frames_video for signal in row])
                 
             # Check whether zero speeds in the list meets the threshold
-            zero_exceeds_threshold = any((np.sum(np.array(speed) == 0.0) + np.isnan(speed).sum()) / len(speed) > zero_threshold for speed in speeds)
+            zero_exceeds_threshold = any((np.sum(np.array(speed) == 0.0)) / len(speed) > zero_threshold for speed in speeds)
             
             # If the signal is invalid, mark the entire video as invalid
             if zero_exceeds_threshold or not dimension_signal:
@@ -226,8 +239,8 @@ class CustomDataset(Dataset):
             row = signals[i]
 
             # Split the signals into positions and speeds, and convert the string values into lists of float values
-            positions = [parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
-            speeds = [parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
+            positions = [self.parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
+            speeds = [self.parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
                         
             # Check that the size of the signals meet the threshold
             dimension_signal = all([len(signal)==frames_video for signal in row])
@@ -261,78 +274,105 @@ class CustomDataset(Dataset):
         
         return filtered_data, invalid_video_info
 
-# String to list function
-def parse_float_list(string_value):
-    """
-    Converts a string representation of a list into a Python list of floats, handling 'nan' values.
+    # String to list function
+    def parse_float_list(self, string_value):
+        """
+        Converts a string representation of a list into a Python list of floats, handling 'nan' values.
 
-    Arguments:
-    - string_value (str): A string that represents a list of numerical values, which may include 'nan' as a placeholder for missing values.
+        Arguments:
+        - string_value (str): A string that represents a list of numerical values, which may include 'nan' as a placeholder for missing values.
 
-    Returns:
-    - float_list (list): A list of floats where 'nan' strings in the input are replaced with Python's float('nan') to represent missing values.
-    """
-    # Replace 'nan' with 'null' because json.loads doesn't recognize value nan
-    string_value = string_value.replace('nan', 'null')
-    # Use json.loads to convert a string to Python list/dictionary
-    float_list = json.loads(string_value)
-    # Replace 'null' with float 'nan' as in the original data
-    float_list = [float('nan') if x is None else x for x in float_list]
-    
-    return float_list
+        Returns:
+        - float_list (list): A list of floats where 'nan' strings in the input are replaced with Python's float('nan') to represent missing values.
+        """
+        # Replace 'nan' with 'null' because json.loads doesn't recognize value nan
+        string_value = string_value.replace('nan', 'null')
+        # Use json.loads to convert a string to Python list/dictionary
+        float_list = json.loads(string_value)
+        # Replace 'null' with float 'nan' as in the original data
+        float_list = [float('nan') if x is None else x for x in float_list]
+        
+        return float_list
 
-# Split the data in customised training and test sets
-def split_data(dictionary_input, perc_test=0.1):
-    # Extract unique patients
-    patients = dictionary_input['patients'].flatten()
-    unique_patients = np.unique(patients)
-
-    # Shuffle the patients to ensure randomness
-    np.random.shuffle(unique_patients)
-    
-    # Initialize test and training sets
-    test_patients = []
-    current_test_size = 0
-    total_size = len(patients)
-    
-    # Distribute patients into test set until the percentage is approximately met
-    for patient in unique_patients:
-        if current_test_size / total_size < perc_test:
-            test_patients.append(patient)
-            # Update the current test size
-            patient_mask = patients == patient
-            current_test_size += np.sum(patient_mask)
-        else:
-            break
-
-    # The remaining patients are for training
-    train_patients = [patient for patient in unique_patients if patient not in test_patients]
-    
     # Function to filter data based on patients
-    def filter_data_by_patients(data, selected_patients):
+    def filter_data_by_patients(self, data, selected_patients):
+        '''
+        This function creates a boolean mask to identify which data samples belong to the selected patients and
+        returns a new dictionary containing only the data from those patients.
+
+        Arguments:
+        - data (dict): A dictionary containing arrays, one of which maps each sample to a patient ID under the key 'patients'.
+        - selected_patients (array-like): A list or array of patient IDs that should be used to filter the data.
+
+        Returns:
+        - filtered_data (dict): A dictionary containing only the data samples that correspond to the selected patients.
+        '''
         # Create a boolean mask indicating which patients are in the specific set
         mask = np.isin(data['patients'], selected_patients)
         # Data filtered by patients
         filtered_data = {key: value[mask.flatten()] for key, value in data.items()}
         return filtered_data
-    
-    # Filter the data into train and test sets based on the selected patients
-    test_data = filter_data_by_patients(dictionary_input, test_patients)
-    train_data = filter_data_by_patients(dictionary_input, train_patients)
-    
-    # Shuffle the clips within each set to randomize order
-    def shuffle_data(data):
-        # Shuffle the order of the clips
-        indices = np.random.permutation(data['samples'].shape[0])
-        # Shuffle data
-        shuffled_data = {key: value[indices] for key, value in data.items()}
-        return shuffled_data
-    
-    # Shuffled data
-    train_data = shuffle_data(train_data)
-    test_data = shuffle_data(test_data)
-    
-    return train_data, test_data
+
+    # Split the data in customised training and test sets
+    def split_data(self, dictionary_input, perc_test=0.1):
+        '''
+        Splits the input dataset into training and test sets while ensuring that each patient’s data is entirely in one set.
+
+        The function separates the dataset by patients, ensuring no common data occurs between training and test sets, 
+        shuffles the patients, and splits the data based on the given test set percentage. Then, it shuffles the data 
+        clips within both the training and test sets for randomness.
+
+        Arguments:
+        - dictionary_input (dict): A dictionary containing multiple arrays, where one of the keys is 'patients', 
+                                which holds an array mapping each data sample to a patient ID.
+        - perc_test (float): The percentage of the total data to include in the test set (default is 0.1, or 10%).
+
+        Returns:
+        - train_data (dict): A dictionary containing the training set, where all samples correspond to a subset of patients.
+        - test_data (dict): A dictionary containing the test set, where all samples correspond to a different subset of patients.
+        '''
+        # Extract unique patients
+        patients = dictionary_input['patients'].flatten()
+        unique_patients = np.unique(patients)
+
+        # Shuffle the patients to ensure randomness
+        np.random.shuffle(unique_patients)
+        
+        # Initialize test and training sets
+        test_patients = []
+        current_test_size = 0
+        total_size = len(patients)
+        
+        # Distribute patients into test set until the percentage is approximately met
+        for patient in unique_patients:
+            if current_test_size / total_size < perc_test:
+                test_patients.append(patient)
+                # Update the current test size
+                patient_mask = patients == patient
+                current_test_size += np.sum(patient_mask)
+            else:
+                break
+
+        # The remaining patients are for training
+        train_patients = [patient for patient in unique_patients if patient not in test_patients]
+        
+        # Filter the data into train and test sets based on the selected patients
+        test_data = self.filter_data_by_patients(dictionary_input, test_patients)
+        train_data = self.filter_data_by_patients(dictionary_input, train_patients)
+        
+        # Shuffle the clips within each set to randomize order
+        def shuffle_data(data):
+            # Shuffle the order of the clips
+            indices = np.random.permutation(data['samples'].shape[0])
+            # Shuffle data
+            shuffled_data = {key: value[indices] for key, value in data.items()}
+            return shuffled_data
+        
+        # Shuffled data
+        train_data = shuffle_data(train_data)
+        test_data = shuffle_data(test_data)
+        
+        return train_data, test_data
 
 
 
@@ -346,5 +386,9 @@ if __name__ == '__main__':
 
 
     # Print invalid videos info
-    print(f'\n\nThe list of invalid videos is: {dataset.invalid_video_info}')
-        
+    #print(f'\n\nThe list of invalid videos is: {dataset.invalid_video_info}')
+    #print(f'\n\nThe num of invalid videos is: {len(dataset.invalid_video_info)}')
+    #print(f'\n\nThe num of samples in the dataset is: {len(dataset.data["samples"])}')
+
+    #print(f'\n\nThe num of valid videos is: {len(dataset.train_samples)}')
+    #print(f'\n\nThe num of valid videos is: {len(dataset.test_samples)}')

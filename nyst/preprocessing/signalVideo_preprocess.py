@@ -36,47 +36,52 @@ class PreprocessingSignalsVideos:
         Returns:
         - np.array: The input array with NaN values replaced by interpolated values.
         '''
+        # Return immediately if the array is empty
+        if positions.size == 0:
+            return positions  
         
         # Convert None to np.nan
         positions = self.convert_none_to_nan(positions)
         # Elements count
         n = len(positions)
        
-        # Replace initial NaN positions with the first valid value
-        if np.isnan(positions[0]).any():
-            first_valid_index = np.where(~np.isnan(positions).any(axis=1))[0][0]
-            positions[0] = positions[first_valid_index]
+        # Check if the array contains any non-NaN values
+        if not np.isnan(positions).all():
+            # Replace initial NaN positions with the first valid value
+            if np.isnan(positions[0]).any():
+                first_valid_index = np.where(~np.isnan(positions).any(axis=1))[0][0]
+                positions[0] = positions[first_valid_index]
 
-        # Replace final NaN positions with the last valid value
-        if np.isnan(positions[-1]).any():
-            last_valid_index = np.where(~np.isnan(positions).any(axis=1))[0][-1]
-            positions[-1] = positions[last_valid_index]
-        
-        # Flag initialization and counter 
-        flag = True
-        i = 0
+            # Replace final NaN positions with the last valid value
+            if np.isnan(positions[-1]).any():
+                last_valid_index = np.where(~np.isnan(positions).any(axis=1))[0][-1]
+                positions[-1] = positions[last_valid_index]
+            
+            # Flag initialization and counter 
+            flag = True
+            i = 0
 
-        # Loop through the array to identify and interpolate NaNs
-        while flag:
-            if np.isnan(positions[i]).any():
-                start = i-1 # Start index of interpolation
-                while i < n and np.isnan(positions[i]).any():
+            # Loop through the array to identify and interpolate NaNs
+            while flag:
+                if np.isnan(positions[i]).any():
+                    start = i-1 # Start index of interpolation
+                    while i < n and np.isnan(positions[i]).any():
+                        i += 1
+                    end = i # End index of interpolation
+                    
+                    # Interpolate between the previous valid value and the next valid value of the sequence NaN
+                    if start >= 0 and end < n: # Only interpolate if start and end are valid
+                        prev_val = positions[start]
+                        next_val = positions[end]
+                        interpolated_val = (prev_val + next_val) / 2
+                    
+                        # Sostituzione dei NaN con il valore interpolato
+                        positions[(start+1):end] = np.rint(interpolated_val).astype(int)
+                else:
+                    # Flag check
+                    if i == n-1:
+                        flag = False
                     i += 1
-                end = i # End index of interpolation
-                
-                # Interpolate between the previous valid value and the next valid value of the sequence NaN
-                prev_val = positions[start]
-                next_val = positions[end]
-                interpolated_val = (prev_val + next_val) / 2
-                
-                # Sostituzione dei NaN con il valore interpolato
-                positions[(start+1):end] = np.rint(interpolated_val).astype(int)
-            else:
-                # Flag check
-                if i == n-1:
-                    flag = False
-                
-                i += 1
         # Ensure the entire array is of integer type
         positions = positions.astype(int)
                 
@@ -156,7 +161,7 @@ class PreprocessingFramesVideos:
     
 
     # Remove reflections from the image
-    def remove_reflections(self, frame):
+    def remove_reflections_prova(self, frame):
         '''
         Removes reflections from an image.
 
@@ -181,13 +186,27 @@ class PreprocessingFramesVideos:
         contours, _ = cv2.findContours(morphed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         # Create a mask for the reflections
-        mask = np.zeros_like(gray)
+        mask = np.zeros_like(frame)
         cv2.drawContours(mask, contours, -1, (255), thickness=cv2.FILLED)
 
         # Use the mask for inpainting (repairing) the image
         result = cv2.inpaint(self.frame, mask, 3, cv2.INPAINT_TELEA)
 
         return result
+
+
+
+    def remove_reflections(gray_frame, background_subtractor):
+        # Applica la sottrazione dello sfondo
+        fgmask = background_subtractor.apply(gray_frame)
+
+        # Opzionale: Applica alcune operazioni morfologiche per pulire la maschera
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
+        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel)
+
+        return fgmask
+
 
     # Apply all preprocessing steps to a frame
     def preprocess_frame(self, frame):
@@ -228,7 +247,8 @@ class PreprocessingFramesVideos:
         # frame = self.apply_super_resolution(frame)
         
         # Remove reflections
-        frame_no_reflections = self.remove_reflections(frame_edge_enhanced)
+        background_subtractor = cv2.createBackgroundSubtractorMOG2()
+        frame_no_reflections = self.remove_reflections(frame_edge_enhanced,background_subtractor)
         cv2.imshow('After Removing Reflections', frame_no_reflections)
         cv2.waitKey(1)
 
