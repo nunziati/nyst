@@ -65,14 +65,26 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
+                # Print per verificare i label
+                print(f"Labels (tipo): {labels.dtype}")      # Controlla il tipo di label (deve essere float32)
+                print(f"Labels (valori): {labels}")          # Stampa i valori dei label
+                print(f"Valori unici nei label: {labels.unique()}")  # Verifica che siano binari (0 e 1)
+                
+                # Make sure the labels are of the correct type (float32).
+                labels = labels.float()
                 # Reset gradients
                 optimizer.zero_grad()
 
                 # Forward and backward step only in training phase
                 with torch.set_grad_enabled(phase == 'Train'):
-                    outputs = model(inputs) # Forward
+                    outputs = model(inputs) # Forward Step
+                    
+                    print(f"Outputs (tipo): {outputs.dtype}")     # Tipo dei dati degli outputs
+                    print(f"Outputs (valori): {outputs}")         # Valori degli outputs del modello
+                    print(f"Outputs (min-max): {outputs.min().item()} - {outputs.max().item()}")  # Controlla il range degli output
+                    
                     loss = criterion(outputs, labels) # Loss calculation
-                    preds = outputs >= threshold_correct # Tensore of correct/false predictions based on a specific threshold
+                    preds = (outputs >= threshold_correct) # Tensore of correct/false predictions based on a specific threshold
                     
                     # Backprop step and optimization step 
                     if phase == 'Train':
