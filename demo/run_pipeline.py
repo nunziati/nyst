@@ -10,7 +10,7 @@ from nyst.pipeline.first_pipeline import FirstPipeline
 from script.flatten_video_directories import flattenVideoDirectories
 from script.label_videos import labelling_videos
 from script.video_rotation import process_videos_in_directory
-from nyst.classifier.train import training_net
+from nyst.classifier.train import training_net, save_model_info
 
 
 ### YAML ###
@@ -51,6 +51,7 @@ def load_hyperparams(pathConfiguratorYaml: str):
     csv_input_file = yaml_configurator['csv_input_file']
     csv_label_file = yaml_configurator['csv_label_file']
     save_path = yaml_configurator['save_path']
+    save_path_info = yaml_configurator['save_path_info']
 
     batch_size = yaml_configurator['batch_size']
     lr = yaml_configurator['lr'] 
@@ -62,11 +63,8 @@ def load_hyperparams(pathConfiguratorYaml: str):
     k_folds = yaml_configurator['k_folds'] 
     
 
-
-
-
     #The function returns all these variablesas a tuple, returning all the parameters as individual variables:
-    return input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, input_folder_extr, output_folder_extr, csv_input_file, csv_label_file, save_path, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds
+    return input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, input_folder_extr, output_folder_extr, csv_input_file, csv_label_file, save_path, save_path_info, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds
 
 
 # Function to perform the pipeline and the entier code
@@ -82,7 +80,7 @@ def main(option):
     if option == 'Video labelling':
         try:
             ### YAML ###
-            input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, _, _, _, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml)
+            input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml)
             
             # Flattening video directories
             flattenVideoDirectories(input_folder_lab, flattened_folder_lab)
@@ -123,7 +121,7 @@ def main(option):
     elif option == 'Feature Exctraction':
         try:
             ### YAML ###
-            _, _, _, _, _, input_folder_extr, output_folder_extr, _, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+            _, _, _, _, _, input_folder_extr, output_folder_extr, _, _, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
             
             # Perform the feature extraction over all the videos in the input folder
             pipeline.videos_feature_extractor(input_folder_extr, output_folder_extr)
@@ -137,15 +135,17 @@ def main(option):
     elif option == 'Training Phase':
         try:
             ### YAML ###
-            _, _, _, _, _, _, _, csv_input_file, csv_label_file, save_path, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds = load_hyperparams(pathConfiguratorYaml) 
+            _, _, _, _, _, _, _, csv_input_file, csv_label_file, save_path, save_path_info, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds = load_hyperparams(pathConfiguratorYaml) 
             
             # Perform the training and validation of the full net using k-cross validation and grid search
             results = training_net(csv_input_file, csv_label_file, save_path, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds)
-        
+
+            #Save model info
+            save_model_info(results, save_path_info)
+
         except Exception as e:
             print(f"An error occurred during the Training and Validation phase: {e}")
-            exit()
-    
+            exit()    
     
     elif option == 'Inference Phase':
         # Code block for option 3

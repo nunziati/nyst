@@ -41,6 +41,8 @@ csv_label_file:
     'D:/nyst_labelled_videos/labels.csv'
 save_path:
     'D:/nyst_labelled_videos/best_model.pth'
+save_path_info:
+    'D:/nyst_labelled_videos'
 
 # VALUES CONFIGURATION
 batch_size:

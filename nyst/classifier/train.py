@@ -238,6 +238,41 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
     
     return results
 
+def save_model_info(results, save_path):
+    """
+    Save the information of the best model to a text file.
+    
+    Args:
+        results: The results dictionary containing the best model's statistics.
+        save_path: The path where to save the text file.
+    """
+    # Create the file path
+    file_path = os.path.join(save_path, 'best_model_info.txt')
+    
+    # Retrieve best result information
+    best_params = results[0]['Parameters']
+    best_avg_val_acc = results[0]['Models info']['Avarage val accuracy']
+    best_avg_val_loss = results[0]['Models info']['Avarage val loss']
+    best_model_stats = results[0]['Models info']
+    
+    # Write the information to the file
+    with open(file_path, 'w') as f:
+        f.write("Best Model Information\n")
+        f.write("="*50 + "\n")
+        f.write(f"Best Hyperparameters: {best_params}\n")
+        f.write(f"Average Validation Accuracy: {best_avg_val_acc:.4f}\n")
+        f.write(f"Average Validation Loss: {best_avg_val_loss:.4f}\n\n")
+        
+        f.write("Validation Accuracies per Fold:\n")
+        for i, acc in enumerate(best_model_stats['Val accuracies list']):
+            f.write(f"Fold {i+1}: {acc:.4f}\n")
+        
+        f.write("\nBest Model Statistics\n")
+        f.write("="*50 + "\n")
+        f.write(f"Best Model Validation Accuracy: {max(best_model_stats['Val accuracies list']):.4f}\n")
+        f.write(f"Best Model Validation Loss: {min(best_model_stats['Val Loss list']):.4f}\n")
+    
+    print(f"\n\nBest model information saved in {file_path}")
 
 
 # Function to perform the training of the full net 
