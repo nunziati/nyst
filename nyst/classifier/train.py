@@ -8,6 +8,7 @@ import torch.nn.init as init
 from sklearn.model_selection import KFold, ParameterGrid
 import sys
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Imposta il dispositivo GPU desiderato (0, 1, 2, ecc.)
 
 # Add 'code' directory to PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -143,7 +144,7 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
         print(f"Training Net with this HyperParameters Matrix: {params}")
 
         # Dictionary to store results for the current parameter set
-        fold_results = {'Best models': [], 'Val accuracies list': [],'Avarage val loss': 0.0, 'Avarage val accuracy': 0.0}
+        fold_results = {'Best models': [], 'Val Loss list': [], 'Val accuracies list': [],'Avarage val loss': 0.0, 'Avarage val accuracy': 0.0}
         
         # Perform k-fold cross-validation
         for fold, (train_index, val_index) in enumerate(kf.split(range(len(dataset.tensors[0]))), 1):
@@ -283,7 +284,8 @@ def training_net(csv_input_file, csv_label_file, save_path, batch_size, lr, opti
     initialize_parameters(model) # Initilize model parameters in a specific manner
            
     # Define the device
-    device = torch.device('cuda::0') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
     # Create the training and validation datasets object
     dataset = CustomDataset(csv_input_file, csv_label_file)
