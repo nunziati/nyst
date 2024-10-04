@@ -8,7 +8,8 @@ import torch.nn.init as init
 from sklearn.model_selection import KFold, ParameterGrid
 import sys
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Imposta il dispositivo GPU desiderato (0, 1, 2, ecc.)
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Set the desired GPU device (0, 1, 2, ecc.)
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True' # Handle memory fragmentation 
 
 # Add 'code' directory to PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -59,16 +60,51 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
             running_loss = 0.0
             running_corrects = 0
 
-            # Iterate over the data
+            # Differentiating between Training and Validation
+            if phase == 'Val': # Validation phase
+                # Use torch.no_grad() to avoid storing gradients during validation
+                with torch.no_grad():
+                    for inputs, labels in data_loader:
+                        # Move the input and label tensors to the specified device
+                        inputs = inputs.to(device)
+                        labels = labels.to(device)
+
+                        # Labels to float datatype
+                        labels = labels.float()
+                        
+                        outputs = model(inputs)  # Forward Step
+                        loss = criterion(outputs, labels)  # Loss calculation
+                        preds = (outputs >= threshold_correct)  # Predictions based on threshold
+                        
+                        running_loss += loss.item() * inputs.size(0)
+                        running_corrects += torch.sum(preds == labels.data)
+            else: # Training phase
+                for inputs, labels in data_loader:
+                    inputs = inputs.to(device)
+                    labels = labels.to(device)
+
+                    # Make sure the labels are of the correct type (float32).
+                    labels = labels.float()
+                    
+                    optimizer.zero_grad()  # Reset gradients
+                    
+                    # Forward and backward pass with gradients enabled
+                    outputs = model(inputs)  # Forward Step
+                    loss = criterion(outputs, labels)  # Loss calculation
+                    preds = (outputs >= threshold_correct)  # Predictions
+                    
+                    loss.backward()  # Backpropagation
+                    optimizer.step()  # Optimization step
+                    
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(preds == labels.data)
+
+
+            '''# Iterate over the data
             for inputs, labels in data_loader:
                 # Move the input and label tensors to the specified device
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-
-                # Print per verificare i label
-                print(f"Labels (tipo): {labels.dtype}")      # Controlla il tipo di label (deve essere float32)
-                print(f"Labels (valori): {labels}")          # Stampa i valori dei label
-                print(f"Valori unici nei label: {labels.unique()}")  # Verifica che siano binari (0 e 1)
                 
                 # Make sure the labels are of the correct type (float32).
                 labels = labels.float()
@@ -78,10 +114,6 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
                 # Forward and backward step only in training phase
                 with torch.set_grad_enabled(phase == 'Train'):
                     outputs = model(inputs) # Forward Step
-                    
-                    print(f"Outputs (tipo): {outputs.dtype}")     # Tipo dei dati degli outputs
-                    print(f"Outputs (valori): {outputs}")         # Valori degli outputs del modello
-                    print(f"Outputs (min-max): {outputs.min().item()} - {outputs.max().item()}")  # Controlla il range degli output
                     
                     loss = criterion(outputs, labels) # Loss calculation
                     preds = (outputs >= threshold_correct) # Tensore of correct/false predictions based on a specific threshold
@@ -93,7 +125,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
 
                 # Partial Statistics across the inputs
                 running_loss += loss.item() * inputs.size(0) # loss of batch * size of first tensor axis (size of mini-batch) = total loss for current batch
-                running_corrects += torch.sum(preds == labels.data) # Accumulate the number of correct predictions of the batches
+                running_corrects += torch.sum(preds == labels.data) # Accumulate the number of correct predictions of the batches'''
 
             # Loss and number of correct predictions for each single epoch 
             epoch_loss = running_loss / len(data_loader.dataset)
@@ -124,10 +156,12 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
 
                 # Check the early stopping criterion (if no improvement for at least 'patience' number of epochs)
                 if epochs_no_improve >= patience:
-                    print('\n\n\nEarly stopping at {epoch}° epoch: {epochs_no_improve} without any accuracy improvement')
+                    print(f'\n\n\nEarly stopping at {epoch}° epoch: {epochs_no_improve} without any accuracy improvement')
                     # model.load_state_dict(best_model_wts)
                     return best_model_wts, train_stats, val_stats, best_acc, best_loss
 
+        # Clear cache after each epoch to free up memory
+        torch.cuda.empty_cache()
 
         # Print progress at the end of each epoch
         print(f'\t\tEpoch {epoch + 1}/{num_epochs} ------------------- T Loss: {train_stats["loss"][-1]:.4f}, T Acc: {train_stats["accuracy"][-1]:.4f}, V Loss: {val_stats["loss"][-1]:.4f}, V Acc: {val_stats["accuracy"][-1]:.4f}')
@@ -227,6 +261,9 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
         
         print(f"\n\n\nAverage validation accuracy - loss for {idx}° parameters set: {avg_val_acc:.4f} - {avg_val_loss:.4f}")
 
+        # **Empty the GPU cache after each parameter set (after all folds for one param combination)**
+        torch.cuda.empty_cache()
+    
     # Sort results by average accuracy in validation
     results = sorted(results, key=lambda x: x['Models info']['Avarage val accuracy'], reverse=True)
     
