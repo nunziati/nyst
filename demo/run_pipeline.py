@@ -140,9 +140,6 @@ def main(option):
             # Perform the training and validation of the full net using k-cross validation and grid search
             results = training_net(csv_input_file, csv_label_file, save_path, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds)
 
-            #Save model info
-            save_model_info(results, save_path_info)
-
         except Exception as e:
             print(f"An error occurred during the Training and Validation phase: {e}")
             exit()    

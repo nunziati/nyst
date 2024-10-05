@@ -177,8 +177,8 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
     
     # Initialize KFold with the specified number of folds
     kf = KFold(n_splits=k_folds, shuffle=False) # You can set shuffle to True and delete the seed(random_state=42)
-    # Initialize directory to store results
-    results = []
+    # Initialize list to store all results
+    all_results = []
     # Create a parameter grid iterator
     grid = ParameterGrid(param_grid)
     print('\n\n')
@@ -194,7 +194,9 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
         
         # Perform k-fold cross-validation
         for fold, (train_index, val_index) in enumerate(kf.split(range(len(dataset.tensors[0]))), 1):
+            
             print(f"\n\t---> Fold {fold}/{k_folds}:")
+            
             # Create training and validation subsets using the generated indices
             train_subset = Subset(dataset, train_index)
             val_subset = Subset(dataset, val_index)
@@ -252,41 +254,44 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
         fold_results['Avarage val loss'] = avg_val_loss
         fold_results['Avarage val accuracy'] = avg_val_acc
          
-        # Save the results for this parameter set in the main dictionary
-        results = {
+        # Save results for current parameters
+        all_results.append({
             'Parameters': params,
             'Param index': idx,
             'Models info': fold_results
-        }
+        })
         
         print(f"\n\n\nAverage validation accuracy - loss for {idx}° parameters set: {avg_val_acc:.4f} - {avg_val_loss:.4f}")
 
         # **Empty the GPU cache after each parameter set (after all folds for one param combination)**
         torch.cuda.empty_cache()
     
-    # Sort results by average accuracy in validation
-    results = sorted(results, key=lambda x: x['Models info']['Avarage val accuracy'], reverse=True)
-    
+    # Sort results by average accuracy
+    sorted_results = sorted(all_results, key=lambda x: x['Models info']['Avarage val accuracy'], reverse=True)
+        
     print("\n\n","="*100,"\n\n")
-    print(f"\n\nBest parameters: {results[0]['Parameters']}, Average validation accuracy: {results[0]['Avarage val accuracy']:.4f}")
+    print(f"\n\nBest parameters: {sorted_results[0]['Parameters']}, Average validation accuracy: {sorted_results[0]['Models info']['Avarage val accuracy']:.4f}")
 
-    # Extract the list of best models and corresponding validation accuracies
-    best_models_list = results[0]['Models info']['Best models']
-    best_val_accuracies_list = results[0]['Models info']['Val accuracies list']
+      # Extract the list of best models and corresponding validation accuracies
+    best_models_list = sorted_results[0]['Models info']['Best models']
+    best_val_accuracies_list = sorted_results[0]['Models info']['Val accuracies list']
 
     # Find the model with the highest validation accuracy
     best_val_acc = max(best_val_accuracies_list)
     best_model_index = best_val_accuracies_list.index(best_val_acc)
     final_best_model_param = best_models_list[best_model_index]
 
-    # Create the beste model
+    # Create the best model
     best_model = copy.deepcopy(model)
     best_model.load_state_dict(final_best_model_param)
 
     # Save the best model
-    torch.save(best_model.state_dict(), save_path) # WARNING: the resulting file will be specific to the version of PyTorch used, potentially making portability of the model between different versions of PyTorch difficult.
-    
-    return results
+    torch.save(best_model.state_dict(), save_path)
+
+    # Save the model information
+    save_model_info(sorted_results, save_path)
+
+    return sorted_results
 
 def save_model_info(results, save_path):
     """
@@ -301,8 +306,8 @@ def save_model_info(results, save_path):
     
     # Retrieve best result information
     best_params = results[0]['Parameters']
-    best_avg_val_acc = results[0]['Models info']['Avarage val accuracy']
-    best_avg_val_loss = results[0]['Models info']['Avarage val loss']
+    best_avg_val_acc = results[0]['Models info']['Average val accuracy']
+    best_avg_val_loss = results[0]['Models info']['Average val loss']
     best_model_stats = results[0]['Models info']
     
     # Write the information to the file
@@ -323,6 +328,7 @@ def save_model_info(results, save_path):
         f.write(f"Best Model Validation Loss: {min(best_model_stats['Val Loss list']):.4f}\n")
     
     print(f"\n\nBest model information saved in {file_path}")
+
 
 
 # Function to perform the training of the full net 
