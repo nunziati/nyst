@@ -132,7 +132,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
     # Print best model for this training
     print(f'\n\tBEST MODEL ------------------- Best V Acc: {best_acc:.4f}, Best V loss: {best_loss:.6f} Best V Epoch: {best_epoch}\n\n')
 
-    return best_model_wts, train_stats, val_stats, best_acc, best_loss
+    return {k: v.cpu() for k, v in best_model_wts.items()}, train_stats, val_stats, best_acc, best_loss
 
 def cross_validate_model(dataset, param_grid, device, save_path, k_folds=4):
     
