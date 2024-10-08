@@ -29,12 +29,9 @@ def initialize_parameters(model:nn.Module, mean:float = 0.0, std:float = 0.02):
 
 ### Training Function with k-cross validation and grid-search ### 
 def train_model_cross(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=1000, patience=30, threshold_correct=0.5): # threshold_correct: probability threshold correct response
-   
-    # Move the model to the specified device
-    model = model.to(device)
-
+ 
     # Initialize the best model weights and accuracy
-    best_model_wts = copy.deepcopy(model.state_dict()) # This dictionary includes all model weights and biases of the best trained model 
+    best_model_wts = model.state_dict() # This dictionary includes all model weights and biases of the best trained model 
     best_acc = 0.0
     
     # Initialize dictionaries to store training and validation statistics
@@ -81,10 +78,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
             else: # Training phase
                 for inputs, labels in data_loader:
                     inputs = inputs.to(device)
-                    labels = labels.to(device)
-
-                    # Make sure the labels are of the correct type (float32).
-                    labels = labels.float()
+                    labels = labels.float().to(device)
                     
                     optimizer.zero_grad()  # Reset gradients
                     
@@ -99,39 +93,9 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
                     running_loss += loss.item() * inputs.size(0)
                     running_corrects += torch.sum(preds == labels.data)
 
-
-            '''# Iterate over the data
-            for inputs, labels in data_loader:
-                # Move the input and label tensors to the specified device
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-                
-                # Make sure the labels are of the correct type (float32).
-                labels = labels.float()
-                # Reset gradients
-                optimizer.zero_grad()
-
-                # Forward and backward step only in training phase
-                with torch.set_grad_enabled(phase == 'Train'):
-                    outputs = model(inputs) # Forward Step
-                    
-                    loss = criterion(outputs, labels) # Loss calculation
-                    preds = (outputs >= threshold_correct) # Tensore of correct/false predictions based on a specific threshold
-                    
-                    # Backprop step and optimization step 
-                    if phase == 'Train':
-                        loss.backward()
-                        optimizer.step()
-
-                # Partial Statistics across the inputs
-                running_loss += loss.item() * inputs.size(0) # loss of batch * size of first tensor axis (size of mini-batch) = total loss for current batch
-                running_corrects += torch.sum(preds == labels.data) # Accumulate the number of correct predictions of the batches'''
-
             # Loss and number of correct predictions for each single epoch 
             epoch_loss = running_loss / len(data_loader.dataset)
             epoch_acc = running_corrects.float() / len(data_loader.dataset)
-
-            # print(f'\t\tEpoch {epoch}/{num_epochs - 1} ','-' * 10, f' {phase} Loss: {epoch_loss:.4f} -- {phase} Acc: {epoch_acc:.4f}')
 
             # Store current informations
             if phase == 'Train':
@@ -148,7 +112,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
                     best_acc = epoch_acc
                     best_loss = epoch_loss
                     best_epoch = epoch
-                    best_model_wts = copy.deepcopy(model.state_dict())
+                    best_model_wts = model.state_dict()
                     epochs_no_improve = 0
                 else:
                     # If no improvement in accuracy, increment the counter for early stopping
@@ -168,12 +132,9 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
     # Print best model for this training
     print(f'\n\tBEST MODEL ------------------- Best V Acc: {best_acc:.4f}, Best V loss: {best_loss:.6f} Best V Epoch: {best_epoch}\n\n')
 
-    # Load the model's best weights
-    #model.load_state_dict(best_model_wts)
-
     return best_model_wts, train_stats, val_stats, best_acc, best_loss
 
-def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=4):
+def cross_validate_model(dataset, param_grid, device, save_path, k_folds=4):
     
     # Initialize KFold with the specified number of folds
     kf = KFold(n_splits=k_folds, shuffle=False) # You can set shuffle to True and delete the seed(random_state=42)
@@ -181,6 +142,7 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
     all_results = []
     # Create a parameter grid iterator
     grid = ParameterGrid(param_grid)
+  
     print('\n\n')
 
     # Iterate over all parameter combinations in the parameter grid
@@ -192,6 +154,9 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
         # Dictionary to store results for the current parameter set
         fold_results = {'Best models': [], 'Val Loss list': [], 'Val accuracies list': [],'Avarage val loss': 0.0, 'Avarage val accuracy': 0.0}
         
+        # List folds models
+        fold_models_list = []
+
         # Perform k-fold cross-validation
         for fold, (train_index, val_index) in enumerate(kf.split(range(len(dataset.tensors[0]))), 1):
             
@@ -206,18 +171,17 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
             val_loader = DataLoader(val_subset, batch_size=params.get('batch_size', 4), shuffle=False)
             
             # Re-initialize the model for each fold
-            model_copy = NystClassifier()  # Creates a new instance of the model
-            initialize_parameters(model_copy)  # Initialise model parameters
-            model_copy = model_copy.to(device)  # Bring the new model to the GPU 
+            model = NystClassifier().to(device)
+            initialize_parameters(model) 
             
             # Select and initialise the optimizer based on parameters
             optimizer_name = params.get('optimizer', 'Adam')
             if optimizer_name == 'SGD':
-                optimizer = optim.SGD(model_copy.parameters(), lr=params.get('lr', 1e-3), 
+                optimizer = optim.SGD(model.parameters(), lr=params.get('lr', 1e-3), 
                                       momentum= 0.9, 
                                       weight_decay= 1e-4)
             elif optimizer_name == 'Adam':
-                optimizer = optim.Adam(model_copy.parameters(), lr=params.get('lr', 1e-3))
+                optimizer = optim.Adam(model.parameters(), lr=params.get('lr', 1e-3))
             else:
                 raise ValueError(f"Unsupported optimizer: {optimizer_name}")            
             
@@ -242,19 +206,23 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
             threshold_correct = params.get('threshold_correct', 0.5)
             
             # Train the model and retrieve the training and validation statistics
-            best_model_wts, _, _, best_acc, best_loss = train_model_cross(model_copy, train_loader, val_loader, criterion, optimizer, device, num_epochs, patience, threshold_correct)
+            best_model_wts, _, _, best_acc, best_loss = train_model_cross(model, train_loader, val_loader, criterion, optimizer, device, num_epochs, patience, threshold_correct)
             
             # Store best models and corrispondent validation accuracies
-            fold_results['Best models'].append(best_model_wts)
+            fold_models_list.append(best_model_wts)
             fold_results['Val Loss list'].append(best_loss)
             fold_results['Val accuracies list'].append(best_acc)
             
+            # Move best model weights to CPU to free GPU memory
+            del model  # Free model from GPU memory
+            torch.cuda.empty_cache()  # Clear CUDA cache
 
         # Store the avarage validation accuracy an loss in the partial dictionary
         avg_val_loss = sum(fold_results['Val Loss list']) / k_folds
         avg_val_acc = sum(fold_results['Val accuracies list']) / k_folds
         fold_results['Avarage val loss'] = avg_val_loss
         fold_results['Avarage val accuracy'] = avg_val_acc
+        fold_results['Best models'] = fold_models_list[fold_results['Avarage val accuracy'].index(max(fold_results['Avarage val accuracy']))]
          
         # Save results for current parameters
         all_results.append({
@@ -274,18 +242,12 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
     print("\n\n","="*100,"\n\n")
     print(f"\n\nBest parameters: {sorted_results[0]['Parameters']}, Average validation accuracy: {sorted_results[0]['Models info']['Avarage val accuracy']:.4f}")
 
-      # Extract the list of best models and corresponding validation accuracies
-    best_models_list = sorted_results[0]['Models info']['Best models']
-    best_val_accuracies_list = sorted_results[0]['Models info']['Val accuracies list']
-
-    # Find the model with the highest validation accuracy
-    best_val_acc = max(best_val_accuracies_list)
-    best_model_index = best_val_accuracies_list.index(best_val_acc)
-    final_best_model_param = best_models_list[best_model_index]
+    # Extract the list of best models and corresponding validation accuracies
+    best_model_param = sorted_results[0]['Models info']['Best models']
 
     # Create the best model
     best_model = NystClassifier()
-    best_model.load_state_dict(final_best_model_param)
+    best_model.load_state_dict(best_model_param)
 
     # Save the best model
     torch.save(best_model.state_dict(), save_path)
