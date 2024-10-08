@@ -222,7 +222,7 @@ def cross_validate_model(dataset, param_grid, device, save_path, k_folds=4):
         avg_val_acc = sum(fold_results['Val accuracies list']) / k_folds
         fold_results['Avarage val loss'] = avg_val_loss
         fold_results['Avarage val accuracy'] = avg_val_acc
-        fold_results['Best models'] = fold_models_list[fold_results['Avarage val accuracy'].index(max(fold_results['Avarage val accuracy']))]
+        fold_results['Best models'] = fold_models_list[fold_results['Val accuracies list'].index(max(fold_results['Val accuracies list']))]
          
         # Save results for current parameters
         all_results.append({
