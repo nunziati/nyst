@@ -206,7 +206,9 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
             val_loader = DataLoader(val_subset, batch_size=params.get('batch_size', 4), shuffle=False)
             
             # Re-initialize the model for each fold
-            model_copy = copy.deepcopy(model)
+            model_copy = NystClassifier()  # Creates a new instance of the model
+            initialize_parameters(model_copy)  # Initialise model parameters
+            model_copy = model_copy.to(device)  # Bring the new model to the GPU 
             
             # Select and initialise the optimizer based on parameters
             optimizer_name = params.get('optimizer', 'Adam')
@@ -282,7 +284,7 @@ def cross_validate_model(model, dataset, param_grid, device, save_path, k_folds=
     final_best_model_param = best_models_list[best_model_index]
 
     # Create the best model
-    best_model = copy.deepcopy(model)
+    best_model = NystClassifier()
     best_model.load_state_dict(final_best_model_param)
 
     # Save the best model
