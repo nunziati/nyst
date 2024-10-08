@@ -298,13 +298,8 @@ def save_model_info(results, save_path):
 # Function to perform the training of the full net 
 def training_net(csv_input_file, csv_label_file, save_path, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds):
     
-    # Define our model, loss criteria and optimiser
-    model = NystClassifier()
-    initialize_parameters(model) # Initilize model parameters in a specific manner
-           
     # Define the device
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
 
     # Create the training and validation datasets object
     dataset = CustomDataset(csv_input_file, csv_label_file)
@@ -337,6 +332,6 @@ def training_net(csv_input_file, csv_label_file, save_path, batch_size, lr, opti
     train_dataset_truncated = TensorDataset(train_input_truncated, train_labels_truncated)
 
     # Start the training
-    results = cross_validate_model(model, train_dataset_truncated, param_grid, device, save_path, k_folds)
+    results = cross_validate_model(train_dataset_truncated, param_grid, device, save_path, k_folds)
 
     return results
