@@ -130,7 +130,6 @@ def main(option):
             print(f"An error occurred during the Feature Exctraction phase: {e}")
             exit()
 
-    
     # Execute the TRAINING AND VALIDATION PHASE
     elif option == 'Training Phase':
         try:

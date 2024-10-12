@@ -1,7 +1,6 @@
 import sys
 import os
-import argparse
-import yaml
+from yaml_function import *
 
 # Aggiungi la directory 'code' al PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

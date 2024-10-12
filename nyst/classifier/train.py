@@ -64,10 +64,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
                     for inputs, labels in data_loader:
                         # Move the input and label tensors to the specified device
                         inputs = inputs.to(device)
-                        labels = labels.to(device)
-
-                        # Labels to float datatype
-                        labels = labels.float()
+                        labels = labels.float().to(device)
                         
                         outputs = model(inputs)  # Forward Step
                         loss = criterion(outputs, labels)  # Loss calculation
@@ -125,6 +122,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
                     return best_model_wts, train_stats, val_stats, best_acc, best_loss
 
         # Clear cache after each epoch to free up memory
+        del inputs, labels, outputs, preds
         torch.cuda.empty_cache()
 
         # Print progress at the end of each epoch
@@ -246,7 +244,7 @@ def cross_validate_model(dataset, param_grid, device, save_path, k_folds=4):
     best_model_param = sorted_results[0]['Models info']['Best models']
 
     # Create the best model
-    best_model = NystClassifier()
+    best_model = NystClassifier().to(device)
     best_model.load_state_dict(best_model_param)
 
     # Save the best model
@@ -292,8 +290,6 @@ def save_model_info(results, save_path):
         f.write(f"Best Model Validation Loss: {min(best_model_stats['Val Loss list']):.4f}\n")
     
     print(f"\n\nBest model information saved in {file_path}")
-
-
 
 # Function to perform the training of the full net 
 def training_net(csv_input_file, csv_label_file, save_path, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds):
