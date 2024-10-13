@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, TensorDataset, Subset
 import torch.nn.init as init
 from sklearn.model_selection import KFold
 import os
-import yaml
+from demo.yaml_function import load_hyperparams, pathConfiguratorYaml
 from nyst.classifier.classifier import NystClassifier
 from nyst.classifier.dataset import CustomDataset
 
@@ -238,11 +238,14 @@ def train(config=None):
     Returns:
         None
     """
+    # Load
+    _, _, _, _, _, _, _, csv_input_file, csv_label_file, save_path, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+
     # Initialize W&B with the given configuration
     with wandb.init(config=config):
         config = wandb.config  # Access the W&B configuration settings
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        dataset = CustomDataset('input.csv', 'label.csv')  # Path to your dataset
+        dataset = CustomDataset(csv_input_file, csv_label_file)  # Path to your dataset
 
         # Start cross-validation
-        cross_validate_model(dataset, config, device, 'model_save_path', k_folds=4)
+        cross_validate_model(dataset, config, device, save_path, k_folds=4)

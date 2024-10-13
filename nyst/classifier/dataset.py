@@ -41,7 +41,7 @@ class CustomDataset(Dataset):
         #print(len(self.invalid_video_info)) # Multiply by 4 to obtain the correct number of row
 
         # Split the dataset        
-        self.train_data, self.test_data = self.split_data(self.data)
+        self.train_data, self.test_data = self.split_data(self.data, 0)
         print('\t ---> Splitting step COMPLETED\n')
 
         # Extract the different components of the two sets

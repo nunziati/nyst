@@ -7,7 +7,7 @@ import wandb
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from nyst.classifier.train_wb import train
-from demo.yaml_function import load_hyperparams, pathConfiguratorYaml
+
 
 if __name__ == "__main__":
 
@@ -15,7 +15,7 @@ if __name__ == "__main__":
     wandb.login()
 
     # Load the sweep configuration from a YAML file
-    with open('sweep_config.yaml') as file:
+    with open('wb_config.yaml') as file:
         sweep_config = yaml.safe_load(file)
 
     # Create a sweep in W&B using the configuration loaded
