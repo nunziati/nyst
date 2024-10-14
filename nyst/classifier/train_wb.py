@@ -145,15 +145,15 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
                 print(f"Early stopping at epoch {epoch}")
                 wandb.log({"early_stopping_epoch": epoch}) # Log early stopping epoch
                 model.load_state_dict(best_model_wts) # Load best model weights
-                return model
+                return model, best_acc
             
         # Clear CUDA cache
         torch.cuda.empty_cache()
 
-    return model
+    return model, best_acc
 
 # Cross-validation and hyperparameter sweep function
-def cross_validate_model(dataset, config, device, save_path, k_folds=4):
+def cross_validate_model(dataset, config, device, save_path_wb, k_folds=5):
     """
     Performs cross-validation and hyperparameter sweep on the model.
     
@@ -172,19 +172,16 @@ def cross_validate_model(dataset, config, device, save_path, k_folds=4):
     best_avg_acc = 0.0 # Variable to store best average accuracy
     best_model_wts = None # Variable to store best model weights
 
-    # Using only the training data for cross-validation
+    '''# Using only the training data for cross-validation
     train_signals = dataset.train_signals
-    train_labels = dataset.train_labels
+    train_labels = dataset.train_labels'''
 
     # Loop through each fold
-    for fold, (train_index, val_index) in enumerate(tqdm(kf.split(train_signals), desc="K-Fold Progress", total=k_folds)):        
+    for fold, (train_index, val_index) in enumerate(kf.split(range(len(dataset.tensors[0]))), 1):        
         
         # Create training and validation subset
-        train_subset = Subset(TensorDataset(train_signals, train_labels), train_index)
-        val_subset = Subset(TensorDataset(train_signals, train_labels), val_index)
-
-        '''train_subset = Subset(dataset, train_index)
-        val_subset = Subset(dataset, val_index)'''
+        train_subset = Subset(dataset, train_index)
+        val_subset = Subset(dataset, val_index)
 
         # Create DataLoader for training and validation
         train_loader = DataLoader(train_subset, batch_size=config.batch_size, shuffle=False)
@@ -201,13 +198,10 @@ def cross_validate_model(dataset, config, device, save_path, k_folds=4):
         wandb.watch(model, criterion, log="gradients")
 
         # Train the model for the current fold
-        best_model = train_model_cross(model, train_loader, val_loader, criterion, optimizer, device, config.epochs, config.patience)
+        best_model, fold_acc = train_model_cross(model, train_loader, val_loader, criterion, optimizer, device, config.epochs, config.patience)
 
         # Log GPU/CPU stats to W&B
         wandb.log({"GPU_memory_allocated": torch.cuda.memory_allocated(), "CPU_usage": os.cpu_count()})
-
-        # Get the accuracy for the current fold
-        fold_acc = wandb.run.history._data['Val_accuracy'][-1]
 
         # Update best model if accuracy improves
         if fold_acc > best_avg_acc:
@@ -215,8 +209,14 @@ def cross_validate_model(dataset, config, device, save_path, k_folds=4):
             best_model_wts = copy.deepcopy(best_model.state_dict())  # Copy best model weights
             print(f"New best model found for fold {fold} with accuracy {fold_acc}")
 
+    
     # Save the model with the best accuracy across all folds
-    final_model_save_path = os.path.join(save_path, 'best_model.pth')
+    dir_name = wandb.run.dir.split('/')[-2] 
+    model_dir = os.path.join(save_path_wb, dir_name)
+
+    os.makedirs(model_dir, exist_ok=True)
+
+    final_model_save_path = os.path.join(model_dir, 'best_model.pth')
     torch.save(best_model_wts, final_model_save_path)
     print(f"Saved best model with accuracy {best_avg_acc} at {final_model_save_path}")
 
@@ -239,7 +239,7 @@ def train(config=None):
         None
     """
     # Load
-    _, _, _, _, _, _, _, csv_input_file, csv_label_file, save_path, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+    _, _, _, _, _, _, _, csv_input_file, csv_label_file, _, _, save_path_wb, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
 
     # Initialize W&B with the given configuration
     with wandb.init(config=config):
@@ -247,5 +247,20 @@ def train(config=None):
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         dataset = CustomDataset(csv_input_file, csv_label_file)  # Path to your dataset
 
+        # Create the training and validation datasets and convert numpy arrays to PyTorch tensors
+        train_input_tensor = torch.tensor(dataset.train_signals, dtype=torch.float32)
+        train_labels_tensor = torch.tensor(dataset.train_labels, dtype=torch.float32)
+                
+        # Calculate the number of samples per fold
+        n_samples = len(train_input_tensor)
+        fold_size = n_samples // 5
+        
+        # Truncate the data to be a multiple of the fold size (avoid different fold size problems)
+        train_input_truncated = train_input_tensor[:fold_size * 5]
+        train_labels_truncated = train_labels_tensor[:fold_size * 5]
+
+        # Create Truncate Dataset TensorDataset for train and test sets (avoid different fold size problems)
+        train_dataset_truncated = TensorDataset(train_input_truncated, train_labels_truncated)
+
         # Start cross-validation
-        cross_validate_model(dataset, config, device, save_path, k_folds=4)
+        cross_validate_model(train_dataset_truncated, config, device, save_path_wb, k_folds=5)

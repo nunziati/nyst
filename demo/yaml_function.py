@@ -39,6 +39,7 @@ def load_hyperparams(pathConfiguratorYaml: str):
     csv_label_file = yaml_configurator['csv_label_file']
     save_path = yaml_configurator['save_path']
     save_path_info = yaml_configurator['save_path_info']
+    save_path_wb = yaml_configurator['save_path_wb']
 
     batch_size = yaml_configurator['batch_size']
     lr = yaml_configurator['lr'] 
@@ -51,7 +52,7 @@ def load_hyperparams(pathConfiguratorYaml: str):
     
 
     #The function returns all these variablesas a tuple, returning all the parameters as individual variables:
-    return input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, input_folder_extr, output_folder_extr, csv_input_file, csv_label_file, save_path, save_path_info, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds
+    return input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, input_folder_extr, output_folder_extr, csv_input_file, csv_label_file, save_path, save_path_info, save_path_wb, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds
 
 # Path of the YAML configuration file
-pathConfiguratorYaml = "C:/Users/andre/OneDrive/Desktop/Altro/Tesi/code/nyst/demo/training_configuration.yaml"
+pathConfiguratorYaml = "/repo/porri/nyst/demo/configuration.yaml"
