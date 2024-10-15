@@ -41,23 +41,23 @@ class CustomDataset(Dataset):
         #print(len(self.invalid_video_info)) # Multiply by 4 to obtain the correct number of row
 
         # Split the dataset        
-        self.train_data, self.test_data = self.split_data(self.data, 0)
-        print('\t ---> Splitting step COMPLETED\n')
+        #self.train_data, self.test_data = self.split_data(self.data, 0)
+        #print('\t ---> Splitting step COMPLETED\n')
 
         # Extract the different components of the two sets
-        self.train_signals = self.train_data['signals']
-        self.train_resolutions = self.train_data['resolutions']
-        self.train_patients = self.train_data['patients']
-        self.train_samples = self.train_data['samples']
-        self.train_labels = self.train_data['labels']
+        #self.train_signals = self.train_data['signals']
+        #self.train_resolutions = self.train_data['resolutions']
+        #self.train_patients = self.train_data['patients']
+        #self.train_samples = self.train_data['samples']
+        #self.train_labels = self.train_data['labels']
         #print(len(self.train_signals))
         #print(np.unique(self.train_patients))
         
-        self.test_signals = self.test_data['signals']
-        self.test_resolutions = self.test_data['resolutions']
-        self.test_patients = self.test_data['patients']
-        self.test_samples = self.test_data['samples']
-        self.test_labels = self.test_data['labels']
+        #self.test_signals = self.test_data['signals']
+        #self.test_resolutions = self.test_data['resolutions']
+        #self.test_patients = self.test_data['patients']
+        #self.test_samples = self.test_data['samples']
+        #self.test_labels = self.test_data['labels']
         #print(len(self.test_signals))
         #print(np.unique(self.test_patients))
 
@@ -139,8 +139,89 @@ class CustomDataset(Dataset):
             'labels': labels
         }
 
-    # Data filtering
+    # Funzione aggiornata per il filtraggio dei dati
     def filtering_invalid_data(self, dictionary_input:dict, frames_video:int = 300, zero_threshold:float = 0.2):
+        '''
+        Filters out invalid data/videos based on signal dimensions and zero-speed thresholds, and also removes 
+        entries associated with the same patient, video, and clip number.
+
+        Arguments:
+        - dictionary_input (dict): A dictionary containing the input data.
+        - frames_video (int): The expected number of frames in each signal. Defaults to 300.
+        - zero_threshold (float): The threshold for filtering out signals with excessive zero speeds. Defaults to 0.2 (20%).
+
+        Returns:
+        - tuple:
+            - dict: A dictionary with filtered data, maintaining the original structure but with invalid entries removed.
+            - list: A list containing information about the invalid clips that were filtered out, along with the reasons for the filtering.
+        '''
+
+        # Retrieve the input signal values
+        signals = dictionary_input['signals']
+        samples = dictionary_input['samples']
+        valid_indices = set(range(len(signals)))  # Start with all indices being valid
+        invalid_video_info = []  # To store video information and reasons for filtering
+        invalid_videos = set()
+
+        # Cycle through all signals
+        for i in range(len(signals)):
+            
+            # Extract the specific signal values
+            row = signals[i]
+
+            # Split the signals into positions and speeds
+            positions = [self.parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
+            speeds = [self.parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
+            
+            # Check that the size of the signals meet the threshold
+            dimension_signal = all([len(signal) == frames_video for signal in row])
+            
+            # Check whether zero speeds in the list meets the threshold
+            zero_exceeds_threshold = any((np.sum(np.array(speed) == 0.0)) / len(speed) > zero_threshold for speed in speeds)
+            
+            # If the signal is invalid, mark the entire video as invalid and store the reason
+            if zero_exceeds_threshold or not dimension_signal:
+                invalid_videos.add(tuple(samples[i]))  # Tuple of (patient, video, clip number, resolution)
+
+                # Append invalid video info with reason
+                reason = ""
+                if not dimension_signal:
+                    reason = f"Dimensioni del segnale non valide (attese {frames_video} frame)"
+                elif zero_exceeds_threshold:
+                    reason = f"Velocità zero in più del {zero_threshold*100}% dei frame"
+
+                invalid_video_info.append({
+                    'video': samples[i],  # Patient, video, clip information
+                    'reason': reason
+                })
+
+        # Remove invalid videos
+        for i, sample in enumerate(samples):
+            # Check if 'video' information is stored at the correct index
+            if tuple(sample[::]) in invalid_videos:  # Adjust the slicing based on your actual data structure
+                valid_indices.discard(i)
+
+        # Convert valid_indices to a sorted list
+        valid_indices = sorted(list(valid_indices))
+
+        # Filter the dictionary based on valid indices
+        filtered_data = {}
+        for key, value in dictionary_input.items():
+            if key == "signals":
+                filtered_data[key] = [value[i] for i in valid_indices]
+            else:
+                filtered_data[key] = value[valid_indices]
+
+        # Signals list of lists to Multidimensional numpy array
+        try:
+            filtered_data['signals'] = np.array(filtered_data['signals'])
+        except Exception as e:
+            print(f"Error while converting signals to numpy array: {e}")
+        
+        return filtered_data, invalid_video_info
+
+    # Data filtering
+    def filtering_invalid_data_prev(self, dictionary_input:dict, frames_video:int = 300, zero_threshold:float = 0.2):
         '''
         Filters out invalid data/videos based on signal dimensions and zero-speed thresholds, and also removes 
         entries associated with the same patient, video, and clip number.
@@ -210,69 +291,6 @@ class CustomDataset(Dataset):
         
         return filtered_data, invalid_videos
     
-    # Data filtering
-    def filtering_invalid_data_o(self, dictionary_input:dict, frames_video:int=300, zero_threshold:float=0.2): # CERCA DI PASSARLO IN MODO DINAMICO frames_video e zero_threshold
-        '''
-        Filters out invalid data/videos based on signal dimensions and zero-speed thresholds.
-
-        Arguments:
-        - dictionary_input (dict): A dictionary containing the input data.
-        - frames_video (int): The expected number of frames in each signal. Defaults to 300.
-        - zero_threshold (float): The threshold for filtering out signals with excessive zero speeds. Defaults to 0.2 (20%).
-
-        Returns:
-        - tuple:
-            - dict: A dictionary with filtered data, maintaining the original structure but with invalid entries removed.
-            - list: A list containing information about the invalid videos that were filtered out.
-        '''
-
-        # Retrieve the input signal values
-        signals = dictionary_input['signals']
-        valid_indices = []
-        invalid_video_info = []
-    
-    
-        # Cycle through all signals
-        for i in range(len(signals)):
-            
-            # Extract the specific signal values
-            row = signals[i]
-
-            # Split the signals into positions and speeds, and convert the string values into lists of float values
-            positions = [self.parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
-            speeds = [self.parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
-                        
-            # Check that the size of the signals meet the threshold
-            dimension_signal = all([len(signal)==frames_video for signal in row])
-                   
-            # Check whether zero speeds in the list meets the threshold
-            zero_exceeds_threshold = any((np.sum(np.array(speed) == 0.0) + np.isnan(speed).sum()) / len(speed) > zero_threshold for speed in speeds)
-            
-            # Keep this row if it doesn't exceed any threshold
-            if not zero_exceeds_threshold and dimension_signal:
-                valid_indices.append(i)
-            else:
-                # Save the invalid video info
-                invalid_video_info.append(dictionary_input['samples'][i])
-        
-        
-        # Filter the dictionary based on valid indices
-        filtered_data = {}
-        for key, value in dictionary_input.items():
-            if key == "signals":
-                # Filter the 'signals' key, which is a list of lists of lists with a critical dimension (dim 2) that cannot allow the transformation into a numpy array
-                filtered_data[key] = [value[i] for i in valid_indices]
-            else:
-                # For the other keys, which are NumPy arrays, use NumPy indexing
-                filtered_data[key] = value[valid_indices]
-
-        # Signals list of lists to Multidimensional numpy array
-        try:
-            filtered_data['signals'] = np.array( filtered_data['signals'])
-        except Exception as e:
-            print(f"Error while converting signals to numpy array: {e}")
-        
-        return filtered_data, invalid_video_info
 
     # String to list function
     def parse_float_list(self, string_value):
