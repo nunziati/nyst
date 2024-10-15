@@ -60,7 +60,6 @@ def labelling_videos(input_path, output_path, clip_duration=10, overlapping=8):
             
             # Flags
             end_of_video = False # Flag to indicate if the end of the video has been reached
-            video_ended = True # Flag to indicate if the video ended properly
 
             # Loop over the frames in a clip
             for i in range(clip_frames):
@@ -73,19 +72,9 @@ def labelling_videos(input_path, output_path, clip_duration=10, overlapping=8):
 
                     # If reading a frame failed
                     if not ret:
-                        if i < clip_frames // 2: # If less than half the frames of the clip have been read
-                            end_of_video = True
-                            video_ended = False
-                            break
-                        else:
-                            # Handle the case where the video ends during the latter half of the clip
-                            video_length = int(cv2.VideoCapture.get(cap, cv2.CAP_PROP_FRAME_COUNT))
-                            cv2.VideoCapture.set(cap, cv2.CAP_PROP_POS_FRAMES, video_length - clip_frames + i)
-                            ret, frame = cap.read()
+                        end_of_video = True
+                        break
 
-                            if not ret: # If reading the frame still fails
-                                end_of_video = True
-                                break
                     # Reset the end_of_video flag
                     end_of_video = False 
 
@@ -104,7 +93,7 @@ def labelling_videos(input_path, output_path, clip_duration=10, overlapping=8):
                 cv2.waitKey(1)
                 
             # Release resources if the video is ended
-            if end_of_video and not video_ended:
+            if end_of_video:
                 video_writer.release()
                 os.remove(output_video_path)
                 break
