@@ -7,7 +7,7 @@ import numpy as np
 # Aggiungi la directory 'code' al PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from nyst.classifier.dataset import CustomDataset
+from nyst.dataset.dataset import CustomDataset
 
 # Funzione per ottenere il framerate dei video
 def get_video_framerate(video_path):

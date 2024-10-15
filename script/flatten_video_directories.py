@@ -6,6 +6,13 @@ video_extensions = ['.mp4', '.mkv']
 
 # Function to flatten videos stored in a directory hierarchy to a single directory
 def flattenVideoDirectories(input_dir, output_dir):
+    """
+    Moves video files from subdirectories in 'input_dir' to 'output_dir', renaming them with the folder name as a prefix.
+    
+    Args:
+    - input_dir (str): Path to the input directory containing subfolders with videos.
+    - output_dir (str): Path to the output directory where the videos will be copied.
+    """
     
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)

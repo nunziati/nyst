@@ -6,7 +6,7 @@ import wandb
 # Aggiungi la directory 'code' al PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from nyst.classifier.train_wb import train
+from nyst.training.train_wb import train
 
 
 if __name__ == "__main__":

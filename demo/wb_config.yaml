@@ -1,7 +1,7 @@
 # SWEEP SETTINGS
 project: nyst_detection
 
-method: grid  # Può essere 'random' o 'grid'
+method: grid  # Can be 'random' or 'grid'
 
 parameters:
   batch_size:
@@ -12,6 +12,8 @@ parameters:
     values: [50, 100]
   patience:
     values: [5, 10]
+  threshold_correct:
+    values: [0.5]
   optimizer:
     values: ['adam', 'sgd']
   criterion:
@@ -23,8 +25,8 @@ metric:
 
 early_terminate:
   type: hyperband
-  min_iter: 5  # Almeno 5 iterazioni prima di iniziare a scartare run
-  s: 2        # Parametro opzionale per controllare la quantità di risorse allocate
+  min_iter: 5  
+  s: 2  
 
 #run_cap: 2
-concurrency: 2
+concurrency: 2 #number of concurrent processes

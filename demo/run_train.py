@@ -5,7 +5,7 @@ from yaml_function import *
 # Aggiungi la directory 'code' al PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from nyst.classifier.train import training_net
+from nyst.training.train import training_net
 from demo.yaml_function import load_hyperparams, pathConfiguratorYaml
 
 

@@ -10,7 +10,7 @@ from sklearn.model_selection import KFold
 import os
 from demo.yaml_function import load_hyperparams, pathConfiguratorYaml
 from nyst.classifier.classifier import NystClassifier
-from nyst.classifier.dataset import CustomDataset
+from nyst.dataset.dataset import CustomDataset
 
 # Set the desired GPU device and manage CUDA memory fragmentation
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Set desired GPU device
@@ -198,7 +198,7 @@ def cross_validate_model(dataset, config, device, save_path_wb, k_folds=5):
         wandb.watch(model, criterion, log="gradients")
 
         # Train the model for the current fold
-        best_model, fold_acc = train_model_cross(model, train_loader, val_loader, criterion, optimizer, device, config.epochs, config.patience)
+        best_model, fold_acc = train_model_cross(model, train_loader, val_loader, criterion, optimizer, device, config.epochs, config.patience, config.threshold_correct)
 
         # Log GPU/CPU stats to W&B
         wandb.log({"GPU_memory_allocated": torch.cuda.memory_allocated(), "CPU_usage": os.cpu_count()})
