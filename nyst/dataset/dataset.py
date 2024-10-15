@@ -4,10 +4,13 @@ from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
 import json
+import sys
+
+
 
 
 class CustomDataset(Dataset):
-    def __init__(self, csv_input_file, csv_label_file, preprocess=None, transform=None):
+    def __init__(self, csv_input_file, csv_label_file, preprocess=None, transform=None, save_merged_csv=True, merged_csv_file='D:/nyst_labelled_videos/merged_data.csv'):
         
         print('Loading a Custom Dataset...')
         
@@ -30,36 +33,17 @@ class CustomDataset(Dataset):
         else:
             self.data = self.merged_data
 
+        # Save the merged CSV if the flag is enabled
+        if save_merged_csv:
+            self.data.to_csv(merged_csv_file, index=False)
+            print(f"Merged data saved to {merged_csv_file}")
+        
         # Exctract data into a dictionary
         self.data = self.exctraction_values(self.data)
 
         # Filter the invalid data             
         self.data, self.invalid_video_info = self.filtering_invalid_data(self.data)
         print('\t ---> Filtering invalid data step COMPLETED\n')
-
-        #print(len(self.data['signals']))
-        #print(len(self.invalid_video_info)) # Multiply by 4 to obtain the correct number of row
-
-        # Split the dataset        
-        #self.train_data, self.test_data = self.split_data(self.data, 0)
-        #print('\t ---> Splitting step COMPLETED\n')
-
-        # Extract the different components of the two sets
-        #self.train_signals = self.train_data['signals']
-        #self.train_resolutions = self.train_data['resolutions']
-        #self.train_patients = self.train_data['patients']
-        #self.train_samples = self.train_data['samples']
-        #self.train_labels = self.train_data['labels']
-        #print(len(self.train_signals))
-        #print(np.unique(self.train_patients))
-        
-        #self.test_signals = self.test_data['signals']
-        #self.test_resolutions = self.test_data['resolutions']
-        #self.test_patients = self.test_data['patients']
-        #self.test_samples = self.test_data['samples']
-        #self.test_labels = self.test_data['labels']
-        #print(len(self.test_signals))
-        #print(np.unique(self.test_patients))
 
         # Store the transformation function (if any)
         self.transform = transform
@@ -85,7 +69,7 @@ class CustomDataset(Dataset):
         return signal, label
 
     # Extract the input/label info from the csv file
-    def exctraction_values(self, merged_data):
+    def     exctraction_values(self, merged_data):
         '''
         Preprocesses the merged data to extract relevant features such as signals, resolutions,
         patient information, samples, and labels.
@@ -231,11 +215,23 @@ class CustomDataset(Dataset):
         Returns:
         - float_list (list): A list of floats where 'nan' strings in the input are replaced with Python's float('nan') to represent missing values.
         """
-        # Replace 'nan' with 'null' because json.loads doesn't recognize value nan
-        string_value = string_value.replace('nan', 'null')
-        # Use json.loads to convert a string to Python list/dictionary
-        float_list = json.loads(string_value)
-        # Replace 'null' with float 'nan' as in the original data
-        float_list = [float('nan') if x is None else x for x in float_list]
+        if isinstance(string_value, str):  # Check if it's a string
+            string_value = string_value.replace('nan', 'null')
+            # Use json.loads to convert a string to Python list/dictionary
+            float_list = json.loads(string_value)
+            # Replace 'null' with float 'nan'
+            return [float('nan') if x is None else x for x in float_list]
+        elif isinstance(string_value, np.ndarray):         
+            # Convert the NumPy array to a list and then to a string
+            string_value = str(string_value.tolist()).replace('nan', 'null')  # Replace 'nan' with 'null'
+            # Use json.loads to convert the string to a Python list
+            float_list = json.loads(string_value)
+            return [float('nan') if x is None else x for x in float_list]
+        else:
+            # If it's not a string, you might want to handle it differently
+            print(f"Warning: Expected string but got {type(string_value)}. Returning empty list.")
+            return []
         
-        return float_list
+        
+
+   
