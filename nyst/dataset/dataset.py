@@ -10,7 +10,7 @@ import sys
 
 
 class CustomDataset(Dataset):
-    def __init__(self, csv_input_file, csv_label_file, preprocess=None, transform=None, save_merged_csv=True, merged_csv_file='D:/nyst_labelled_videos/merged_data.csv'):
+    def __init__(self, csv_input_file, csv_label_file, preprocess=None, augmentation=None, save_merged_csv=True, augment=True, new_csv_file='D:/nyst_labelled_videos'):
         
         print('Loading a Custom Dataset...')
         
@@ -32,11 +32,14 @@ class CustomDataset(Dataset):
             self.data = preprocess(self.merged_data)
         else:
             self.data = self.merged_data
+        print('\t ---> Preprocessing step COMPLETED\n')
+
 
         # Save the merged CSV if the flag is enabled
         if save_merged_csv:
-            self.data.to_csv(merged_csv_file, index=False)
-            print(f"Merged data saved to {merged_csv_file}")
+            prep_path = os.path.join(new_csv_file, 'merged_data.csv')
+            self.data.to_csv(prep_path, index=False)
+            print(f"Merged data saved to {prep_path}")
         
         # Exctract data into a dictionary
         self.data = self.exctraction_values(self.data)
@@ -45,8 +48,10 @@ class CustomDataset(Dataset):
         self.data, self.invalid_video_info = self.filtering_invalid_data(self.data)
         print('\t ---> Filtering invalid data step COMPLETED\n')
 
-        # Store the transformation function (if any)
-        self.transform = transform
+        # Data augmentation
+        if augment:
+            self.data = augmentation(self.data)
+        print('\t ---> Augmentation step COMPLETED\n')
 
     # Return the number of samples in the dataset
     def __len__(self):
