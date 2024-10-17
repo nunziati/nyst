@@ -9,6 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from nyst.dataset.dataset import CustomDataset
 from nyst.dataset.preprocess_function import *
+from nyst.dataset.signal_augmentation import *
 
 # Funzione per ottenere il framerate dei video
 def get_video_framerate(video_path):
@@ -169,7 +170,7 @@ if __name__ == '__main__':
     class_counts, video_label_list = count_videos_by_class(csv_path_lab)
 
     # Ottenere i video filtrati con motivi di filtro
-    dataset = CustomDataset(csv_input_file=csv_path_inp, csv_label_file=csv_path_lab, preprocess=preprocess_interpolation)  # Assicurati che i path siano corretti
+    dataset = CustomDataset(csv_input_file=csv_path_inp, csv_label_file=csv_path_lab, preprocess=preprocess_interpolation, augmentation=augment_data)  # Assicurati che i path siano corretti
     invalid_video_info = dataset.invalid_video_info  # Video filtrati con i motivi
 
     # Dataset originale (pre-filtraggio)
