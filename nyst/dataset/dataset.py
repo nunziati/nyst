@@ -49,9 +49,9 @@ class CustomDataset(Dataset):
         print('\t ---> Filtering invalid data step COMPLETED\n')
 
         # Data augmentation
-        if augment:
+        '''if augment:
             self.data = augmentation(self.data)
-        print('\t ---> Augmentation step COMPLETED\n')
+        print('\t ---> Augmentation step COMPLETED\n')'''
 
     # Return the number of samples in the dataset
     def __len__(self):
