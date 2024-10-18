@@ -34,25 +34,23 @@ def load_hyperparams(pathConfiguratorYaml: str):
     input_folder_extr = yaml_configurator['input_folder_extr']
     output_folder_extr = yaml_configurator['output_folder_extr']
 
-    # TRAINING FULL NET PART
+    
+    # PREPROCESS AND AUGMENTATION PART
     csv_input_file = yaml_configurator['csv_input_file']
     csv_label_file = yaml_configurator['csv_label_file']
+    new_csv_file = yaml_configurator['new_csv_file']
+    preprocess = yaml_configurator['preprocess']
+    augmentation = yaml_configurator['augmentation']
+    
+    # TRAINING FULL NET PART
     save_path = yaml_configurator['save_path']
     save_path_info = yaml_configurator['save_path_info']
     save_path_wb = yaml_configurator['save_path_wb']
 
-    batch_size = yaml_configurator['batch_size']
-    lr = yaml_configurator['lr'] 
-    optimizer = yaml_configurator['optimizer']
-    criterion = yaml_configurator['criterion']
-    threshold_correct = yaml_configurator['threshold_correct']
-    patience = yaml_configurator['patience']
-    num_epochs = yaml_configurator['num_epochs'] 
-    k_folds = yaml_configurator['k_folds'] 
     
 
     #The function returns all these variablesas a tuple, returning all the parameters as individual variables:
-    return input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, input_folder_extr, output_folder_extr, csv_input_file, csv_label_file, save_path, save_path_info, save_path_wb, batch_size, lr, optimizer, criterion, threshold_correct, patience, num_epochs, k_folds
+    return input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, input_folder_extr, output_folder_extr, csv_input_file, csv_label_file, new_csv_file, preprocess, augmentation, save_path, save_path_info, save_path_wb
 
 # Path of the YAML configuration file
-pathConfiguratorYaml = "C:/Users/andre/OneDrive/Desktop/Altro/Tesi/code/nyst/demo/training_configuration.yaml"
+pathConfiguratorYaml = "C:/Users/andre/OneDrive/Desktop/Altro/Tesi/code/nyst/demo/configuration.yaml"

@@ -159,8 +159,8 @@ def write_results_to_file(framerate_data, class_counts, video_label_list, invali
 if __name__ == '__main__':
     # Path specificati dall'utente
     video_folder_path = "D:/nyst_labelled_videos/videos"
-    csv_path_lab = "D:/nyst_labelled_videos/labels.csv"
-    csv_path_inp = "D:/nyst_labelled_videos/video_features.csv"
+    csv_path_lab = "D:/nyst_labelled_videos/merged_data.csv"
+    csv_path_inp = "D:/nyst_labelled_videos/merged_data.csv"
     output_file = "D:/nyst_labelled_videos/report.txt"
 
     # Chiamata alla funzione per ottenere il framerate dei video
@@ -170,14 +170,14 @@ if __name__ == '__main__':
     class_counts, video_label_list = count_videos_by_class(csv_path_lab)
 
     # Ottenere i video filtrati con motivi di filtro
-    dataset = CustomDataset(csv_input_file=csv_path_inp, csv_label_file=csv_path_lab, preprocess=preprocess_interpolation, augmentation=augment_data)  # Assicurati che i path siano corretti
+    dataset = CustomDataset(csv_path_lab)  # Assicurati che i path siano corretti
     invalid_video_info = dataset.invalid_video_info  # Video filtrati con i motivi
 
     # Dataset originale (pre-filtraggio)
-    original_data = dataset.merged_data  # DataFrame originale prima del filtraggio
+    original_data = dataset.data  # DataFrame originale prima del filtraggio
 
     # Dataset filtrato (post-filtraggio)
-    filtered_data = dataset.data  # Dizionario di dati dopo il filtraggio
+    filtered_data = dataset.fil_data  # Dizionario di dati dopo il filtraggio
 
     # Conta i dati prima e dopo il filtraggio
     filtering_report = count_data_before_after_filter(original_data, filtered_data)

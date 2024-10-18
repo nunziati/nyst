@@ -1,6 +1,13 @@
 import numpy as np 
 import json
-from scipy.interpolate import interp1d, splrep, splev, CubicSpline
+import sys
+import os
+from scipy.interpolate import  splrep, splev, CubicSpline
+
+# Aggiungi la directory 'code' al PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from nyst.dataset.signal_augmentation import *
 
 # Funzione di preprocess che usa l'interpolazione spline
 def preprocess_interpolation(data, frames=300, order=2):
@@ -58,3 +65,4 @@ def cubic_interpolation(data, frames=300):
         data[column] = data[column].apply(lambda x: interpolate_signal(json.loads(x)) if len(json.loads(x)) != frames else x)
     
     return data
+

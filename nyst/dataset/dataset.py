@@ -3,55 +3,31 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
-import json
 import sys
+
+# Aggiungi la directory 'code' al PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from nyst.dataset.signal_augmentation import *
+from nyst.dataset.preprocess_function import *
 
 
 
 
 class CustomDataset(Dataset):
-    def __init__(self, csv_input_file, csv_label_file, preprocess=None, augmentation=None, save_merged_csv=True, augment=True, new_csv_file='D:/nyst_labelled_videos'):
-        
-        print('Loading a Custom Dataset...')
+    def __init__(self, new_csv_file='D:/nyst_labelled_videos/merged_data.csv'):
         
         # Load the CSV file
-        self.input_data = pd.read_csv(csv_input_file)
-        self.label_data = pd.read_csv(csv_label_file)
-        
-        # Replace backslash with slash in both dataframes
-        self.input_data['video'] = self.input_data['video'].str.replace('\\', '/')
-        self.label_data['video'] = self.label_data['video'].str.replace('\\', '/')
-
-        # Perform the join on the 'video' column
-        self.merged_data = pd.merge(self.input_data, self.label_data, on='video', how='left')
-        #print(self.merged_data.head(-1))
-        #print(len(self.merged_data))
-
-        # Applies the preprocessing function if provided
-        if preprocess:
-            self.data = preprocess(self.merged_data)
-        else:
-            self.data = self.merged_data
-        print('\t ---> Preprocessing step COMPLETED\n')
-
-
-        # Save the merged CSV if the flag is enabled
-        if save_merged_csv:
-            prep_path = os.path.join(new_csv_file, 'merged_data.csv')
-            self.data.to_csv(prep_path, index=False)
-            print(f"Merged data saved to {prep_path}")
+        self.data = pd.read_csv(new_csv_file)
         
         # Exctract data into a dictionary
-        self.data = self.exctraction_values(self.data)
+        self.extr_data = self.exctraction_values(self.data)
 
         # Filter the invalid data             
-        self.data, self.invalid_video_info = self.filtering_invalid_data(self.data)
+        self.fil_data, self.invalid_video_info = self.filtering_invalid_data(self.extr_data)
         print('\t ---> Filtering invalid data step COMPLETED\n')
 
-        # Data augmentation
-        '''if augment:
-            self.data = augmentation(self.data)
-        print('\t ---> Augmentation step COMPLETED\n')'''
+        
 
     # Return the number of samples in the dataset
     def __len__(self):
@@ -74,7 +50,7 @@ class CustomDataset(Dataset):
         return signal, label
 
     # Extract the input/label info from the csv file
-    def     exctraction_values(self, merged_data):
+    def exctraction_values(self, merged_data):
         '''
         Preprocesses the merged data to extract relevant features such as signals, resolutions,
         patient information, samples, and labels.
@@ -98,7 +74,7 @@ class CustomDataset(Dataset):
                             'right_speed X', 'right_speed Y']].values
         
         # Convert strings into lists of float
-        signals = [[self.parse_float_list(signal) for signal in row] for row in signals_str]
+        signals = [[parse_float_list(signal) for signal in row] for row in signals_str]
 
         # Resolutions extraction
         resolutions = merged_data['resolution'].to_numpy().reshape(-1, 1)
@@ -159,8 +135,8 @@ class CustomDataset(Dataset):
             row = signals[i]
 
             # Split the signals into positions and speeds
-            positions = [self.parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
-            speeds = [self.parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
+            positions = [parse_float_list(pos) if isinstance(pos, str) else pos for pos in row[:4]]
+            speeds = [parse_float_list(speed) if isinstance(speed, str) else speed for speed in row[4:]]
             
             # Check that the size of the signals meet the threshold
             dimension_signal = all([len(signal) == frames_video for signal in row])
@@ -209,33 +185,7 @@ class CustomDataset(Dataset):
         
         return filtered_data, invalid_video_info
 
-    # String to list function
-    def parse_float_list(self, string_value):
-        """
-        Converts a string representation of a list into a Python list of floats, handling 'nan' values.
-
-        Arguments:
-        - string_value (str): A string that represents a list of numerical values, which may include 'nan' as a placeholder for missing values.
-
-        Returns:
-        - float_list (list): A list of floats where 'nan' strings in the input are replaced with Python's float('nan') to represent missing values.
-        """
-        if isinstance(string_value, str):  # Check if it's a string
-            string_value = string_value.replace('nan', 'null')
-            # Use json.loads to convert a string to Python list/dictionary
-            float_list = json.loads(string_value)
-            # Replace 'null' with float 'nan'
-            return [float('nan') if x is None else x for x in float_list]
-        elif isinstance(string_value, np.ndarray):         
-            # Convert the NumPy array to a list and then to a string
-            string_value = str(string_value.tolist()).replace('nan', 'null')  # Replace 'nan' with 'null'
-            # Use json.loads to convert the string to a Python list
-            float_list = json.loads(string_value)
-            return [float('nan') if x is None else x for x in float_list]
-        else:
-            # If it's not a string, you might want to handle it differently
-            print(f"Warning: Expected string but got {type(string_value)}. Returning empty list.")
-            return []
+    
         
         
 

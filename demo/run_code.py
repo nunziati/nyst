@@ -19,7 +19,7 @@ def main(option):
 
         try:
             ### YAML ###
-            input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml)
+            input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml)
             
             # Flattening video directories
             flattenVideoDirectories(input_folder_lab, flattened_folder_lab)
@@ -61,7 +61,7 @@ def main(option):
 
         try:
             ### YAML ###
-            _, _, _, _, _, input_folder_extr, output_folder_extr, _, _, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+            _, _, _, _, _, input_folder_extr, output_folder_extr, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
             
             # Initialize the pipeline
             pipeline = FirstPipeline()
@@ -73,6 +73,78 @@ def main(option):
             print(f"An error occurred during the Feature Exctraction phase: {e}")
             exit()
 
+    # Execute the PREPROCESSING AND AUGMENTATION PHASE
+    elif option == 'Preprocessing':
+        
+        import pandas as pd
+        from nyst.dataset.preprocess_function import preprocess_interpolation, cubic_interpolation  
+        from nyst.dataset.signal_augmentation import augment_data
+        from nyst.dataset.utils_function import save_csv
+
+        ### YAML ###
+        _, _, _, _, _, _, _, csv_input_file, csv_label_file, new_csv_file, preprocess, augmentation, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+
+        print('Loading a Custom Dataset...')
+        
+        # Load the CSV file
+        input_data = pd.read_csv(csv_input_file)
+        label_data = pd.read_csv(csv_label_file)
+        
+        # Replace backslash with slash in both dataframes
+        input_data['video'] = input_data['video'].str.replace('\\', '/')
+        label_data['video'] = label_data['video'].str.replace('\\', '/')
+
+        # Perform the join on the 'video' column
+        data = pd.merge(input_data, label_data, on='video', how='left')
+
+
+        # Applies the preprocessing function if provided
+        if len(preprocess)!=0 and (augmentation)!=0:
+                      
+            # PREPROCESSING STEP
+            for prep in preprocess:
+                # Preprocess signals
+                if prep == 'cubic_interpolation':
+                    data = cubic_interpolation(data)
+                elif prep == 'preprocess_interpolation':
+                    data = preprocess_interpolation(data)
+                else:
+                    raise ValueError('Invalid preprocessing choise')
+                print(f'\n\t ---> Preprocessing {prep} step COMPLETED\n')
+            
+            # Save the merged CSV
+            save_csv(data, new_csv_file)
+            print(f"Merged data saved to {new_csv_file}")
+
+            # AUGMENTATION STEP
+            for aug in augmentation:
+                # Preprocess signals
+                if aug == 'augment_data':
+                    data = augment_data(data, new_csv_file)
+                else:
+                    raise ValueError('Invalid augmentation choise')
+                print(f'   \n\t ---> Augmentation {aug} step COMPLETED\n')
+
+        elif preprocess and not augmentation:
+            # PREPROCESSING STEP
+            for prep in preprocess:
+                # Preprocess signals
+                if prep == 'cubic_interpolation':
+                    data = cubic_interpolation(data)
+                elif prep == 'preprocess_interpolation':
+                    data = preprocess_interpolation(data)
+                else:
+                    raise ValueError('Invalid preprocessing choise')
+                print(f'\t ---> Preprocessing {prep} step COMPLETED\n')
+            
+            # Save the merged CSV
+            save_csv(data, new_csv_file)
+            print(f"Merged data saved to {new_csv_file}")
+        else:
+            # Save the merged CSV
+            save_csv(data, new_csv_file)
+            print(f"Merged data saved to {new_csv_file}")
+    
     # Execute the TRAINING AND VALIDATION PHASE
     elif option == 'Training Phase':
 
@@ -97,6 +169,7 @@ def main(option):
             print(f"An error occurred during the Training and Validation phase: {e}")
             exit()    
     
+    # Execute the INFERENCE PHASE
     elif option == 'Inference Phase':
         # Code block for option 3
         # Insert code for option 3 here
@@ -110,7 +183,7 @@ def main(option):
 if __name__ == "__main__":
 
     # Select the desired option
-    option = input('\nPlease select an option:\n\t1. Video labelling\n\t2. Feature Exctraction\n\t3. Training Phase\n\t4. Inference Phase\n\nYour choice: ')
+    option = input('\nPlease select an option:\n\t1. Video labelling\n\t2. Feature Exctraction\n\t3. Preprocessing\n\t4. Training Phase\n\t5. Inference Phase\n\nYour choice: ')
     
     # Execute the main function with the selected option
     main(option)
