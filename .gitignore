@@ -168,6 +168,11 @@ data/
 *.pkl
 *.h5
 *.pth
+**/*.jpg
 
 
 **/wandb
+
+# dataset yolo fold
+/nyst/roi/Eyes3.0-2
+/Eyes3.0-2
