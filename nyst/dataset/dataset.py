@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
 import sys
+import copy
 
 # Aggiungi la directory 'code' al PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -19,13 +20,19 @@ class CustomDataset(Dataset):
         
         # Load the CSV file
         self.data = pd.read_csv(new_csv_file)
+        print('CUSTOMED DATASET LOADED...\n')
         
         # Exctract data into a dictionary
         self.extr_data = self.exctraction_values(self.data)
+        print('\n\t ---> Data extraction step COMPLETED\n')
 
         # Filter the invalid data             
         self.fil_data, self.invalid_video_info = self.filtering_invalid_data(self.extr_data)
-        print('\t ---> Filtering invalid data step COMPLETED\n')
+        print('\n\t ---> Filtering invalid data step COMPLETED\n')
+
+        # Normalization signals            
+        self.fil_norm_data = self.normalization_signals(self.fil_data['signals'])
+        print('\n\t ---> Data normalization step COMPLETED\n')
 
         
 
@@ -184,8 +191,81 @@ class CustomDataset(Dataset):
             print(f"Error while converting signals to numpy array: {e}")
         
         return filtered_data, invalid_video_info
-
     
+    # Funzione per la normalizzazione dei segnali
+    def normalization_signals(self, signals):
+        '''
+        Normalizza i segnali traslando la media a zero per ciascuna feature (es: X, Y, velocità)
+        all'interno di ciascun campione.
+
+        Arguments:
+        - signals (list of lists): Un elenco di liste, dove ciascuna lista interna contiene i segnali temporali
+        per una specifica feature (ad es. 'left_position X', 'left_position Y', etc.).
+
+        Returns:
+        - list of lists: I segnali normalizzati, con la media traslata a zero per ogni feature.
+        '''
+        # Deep copy of signals
+        normalized_signals = copy.deepcopy(signals)
+
+        # Calcolo delle deviazioni standard per ciascuna feature
+        std_per_column = self.calculate_standard_deviation(signals)
+
+        # Itera su ciascun campione (riga di segnali)
+        for i, signal in enumerate(normalized_signals):
+            # Itera su ciascuna feature (ad es. 'left_position X', 'right_speed Y')
+            for j, feature_signal in enumerate(signal):
+                # Converti in numpy array per facilitare i calcoli
+                feature_signal = np.array(feature_signal)
+
+                # Calcola la media di questa feature
+                mean_feature = np.mean(feature_signal)
+
+                # Sottrai la media da tutti i valori della feature per normalizzarla
+                if feature_signal >= 0 and mean_feature >= 0:
+                    feature_signal = feature_signal - mean_feature
+                elif feature_signal >= 0 and mean_feature < 0:
+                    feature_signal = feature_signal + mean_feature
+                elif feature_signal < 0 and mean_feature >= 0:
+                    feature_signal = feature_signal + mean_feature
+                else:
+                    feature_signal = feature_signal - mean_feature
+                
+                # Step 4: Dividi per la deviazione standard calcolata per quella feature
+                std = std_per_column[j]  # Prendi la std della colonna corrispondente alla feature
+                if std > 0:  # Assicurati che la deviazione standard non sia zero
+                    feature_signal /= std
+                
+                # Salva il segnale normalizzato nel posto originale
+                normalized_signals[i][j] = feature_signal.tolist()
+
+        return normalized_signals
+
+    def calculate_standard_deviation(self, signals):
+        '''
+        Calcola la deviazione standard per ciascuna feature considerando tutti i campioni,
+        e poi la deviazione standard globale.
+
+        Arguments:
+        - normalized_signals (list of lists): I segnali normalizzati con dimensione (n_samples, 8, 300).
+
+        Returns:
+        - tuple: Una tupla contenente:
+            - std_per_column (numpy.ndarray): Deviazione standard per ciascuna colonna/feature.
+            - global_std (float): La deviazione standard globale considerando tutti i dati.
+        '''
+        # Step 1: Converti la lista di liste in un array numpy (n_samples, 8, 300)
+        signals_array = np.array(signals)
+
+        # Step 2: Calcola la deviazione standard per ciascuna colonna (dimensione temporale)
+        # Axis 0 = n_samples, Axis 2 = n_frames
+        std_per_column = np.std(signals_array, axis=(0, 2))  # (8,) Deviazione standard per ogni feature
+
+        # Step 3: Calcola la deviazione standard globale considerando tutti i dati
+        #global_std = np.std(normalized_signals_array)
+
+        return std_per_column
+        
         
         
 
