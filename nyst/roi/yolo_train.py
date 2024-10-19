@@ -6,7 +6,7 @@ import torch
 import yaml
 
 # Funzione di addestramento che verrà chiamata per ogni combinazione di parametri nel grid search
-def train():
+def train(idx):
     with wandb.init() as run:
         config = wandb.config  # Accede ai parametri di configurazione gestiti da W&B
 
@@ -28,7 +28,19 @@ def train():
             batch=config.batch_size,  # Corretto accesso al batch_size
             lr0=config.lr,  # Corretto accesso al learning rate
             optimizer=config.optimizer,  # Corretto accesso all'optimizer
+            save_best=True  # Salva automaticamente il miglior modello
         )
+
+        # Ottieni il percorso del miglior modello salvato
+        best_model_path = results.best_model  # Path del miglior modello
+
+        # Usa l'ID del run per generare un nome univoco per il modello
+        unique_model_name = f"D:/model_yolo/best_model_{run.id}.pth"
+
+        # Salva manualmente il modello in un percorso specifico
+        torch.save(model.state_dict(), unique_model_name)
+
+        print(f"Best model saved at: {unique_model_name}")
 
         # 6. Segnala la fine del run
         wandb.finish()
