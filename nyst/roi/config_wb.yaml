@@ -1,0 +1,26 @@
+# SWEEP SETTINGS
+project: yolo-eyes
+
+method: grid  # Can be 'random' or 'grid'
+
+parameters:
+  batch_size:
+    values: [8, 16, 32]
+  lr:
+    values: [0.001, 0.0001, 0.00001]
+  epochs:
+    values: [100, 200, 500]
+  optimizer:
+    values: ['Adam', 'SGD']
+
+metric:
+  goal: minimize
+  name: validation_loss
+
+early_terminate:
+  type: hyperband
+  min_iter: 5  
+  s: 2  
+
+#run_cap: 2
+concurrency: 2 #number of concurrent processes

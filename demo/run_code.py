@@ -125,7 +125,7 @@ def main(option):
                     raise ValueError('Invalid augmentation choise')
                 print(f'   \n\t ---> Augmentation {aug} step COMPLETED\n')
 
-        elif preprocess and not augmentation:
+        elif len(preprocess)!=0 and (augmentation)==0:
             # PREPROCESSING STEP
             for prep in preprocess:
                 # Preprocess signals

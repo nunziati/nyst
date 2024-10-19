@@ -206,10 +206,7 @@ class CustomDataset(Dataset):
         - list of lists: I segnali normalizzati, con la media traslata a zero per ogni feature.
         '''
         # Deep copy of signals
-        normalized_signals = copy.deepcopy(signals)
-
-        # Calcolo delle deviazioni standard per ciascuna feature
-        std_per_column = self.calculate_standard_deviation(signals)
+        normalized_signals = np.array(copy.deepcopy(signals))
 
         # Itera su ciascun campione (riga di segnali)
         for i, signal in enumerate(normalized_signals):
@@ -222,22 +219,20 @@ class CustomDataset(Dataset):
                 mean_feature = np.mean(feature_signal)
 
                 # Sottrai la media da tutti i valori della feature per normalizzarla
-                if feature_signal >= 0 and mean_feature >= 0:
-                    feature_signal = feature_signal - mean_feature
-                elif feature_signal >= 0 and mean_feature < 0:
-                    feature_signal = feature_signal + mean_feature
-                elif feature_signal < 0 and mean_feature >= 0:
-                    feature_signal = feature_signal + mean_feature
-                else:
-                    feature_signal = feature_signal - mean_feature
-                
-                # Step 4: Dividi per la deviazione standard calcolata per quella feature
-                std = std_per_column[j]  # Prendi la std della colonna corrispondente alla feature
-                if std > 0:  # Assicurati che la deviazione standard non sia zero
-                    feature_signal /= std
+                feature_signal -= mean_feature
                 
                 # Salva il segnale normalizzato nel posto originale
                 normalized_signals[i][j] = feature_signal.tolist()
+        
+        # Calcolo delle deviazioni standard per ciascuna feature
+        std_per_column = self.calculate_standard_deviation(normalized_signals)
+        
+        # Dividi per la deviazione standard calcolata per quella feature
+        for idx, std in enumerate(std_per_column):
+            if std > 0:  # Assicurati che la deviazione standard non sia zero
+                normalized_signals[:, idx, :] /= std
+            else:
+                raise ValueError('Check the std of the {idx} column')
 
         return normalized_signals
 
@@ -260,9 +255,6 @@ class CustomDataset(Dataset):
         # Step 2: Calcola la deviazione standard per ciascuna colonna (dimensione temporale)
         # Axis 0 = n_samples, Axis 2 = n_frames
         std_per_column = np.std(signals_array, axis=(0, 2))  # (8,) Deviazione standard per ogni feature
-
-        # Step 3: Calcola la deviazione standard globale considerando tutti i dati
-        #global_std = np.std(normalized_signals_array)
 
         return std_per_column
         
