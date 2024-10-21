@@ -53,4 +53,4 @@ def load_hyperparams(pathConfiguratorYaml: str):
     return input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, input_folder_extr, output_folder_extr, csv_input_file, csv_label_file, new_csv_file, preprocess, augmentation, save_path, save_path_info, save_path_wb
 
 # Path of the YAML configuration file
-pathConfiguratorYaml = "C:/Users/andre/OneDrive/Desktop/Altro/Tesi/code/nyst/demo/configuration.yaml"
+pathConfiguratorYaml = "C:/Users/andre/OneDrive/Desktop/Altro/Tesi/code/nyst/demo/training_configuration.yaml"

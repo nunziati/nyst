@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import dlib
 from scipy.ndimage import gaussian_filter, convolve
 
 

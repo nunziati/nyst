@@ -25,9 +25,10 @@ overlapping:
                                                   ############################################################
 # PATHS
 input_folder_extr:
-    'D:/nyst_labelled_videos_prove/test'
+    '/repo/porri/nyst_labelled_videos/videos'
 output_folder_extr:
     'D:/nyst_labelled_videos'
+  
 
                                                   ############################################################
 
@@ -36,27 +37,12 @@ output_folder_extr:
                                                   ############################################################  
 # PATHS
 csv_input_file:
-    'D:/nyst_labelled_videos/video_features.csv'
+    '/repo/porri/nyst_labelled_videos/video_features.csv'
 csv_label_file:
     'D:/nyst_labelled_videos/labels.csv'
-new_csv_file:
-    'D:/nyst_labelled_videos/merged_data.csv'
-
-# VALUES CONFIGURATION
-preprocess:
-    ['cubic_interpolation']
-augmentation:
-    ['augment_data']    
-                                                  ############################################################
-
-                                                  #                TRAINING FULL NET STEPS
-
-                                                  ############################################################
-# PATHS
-
 save_path:
-    'D:/nyst_labelled_videos/best_model.pth'
+    '/repo/porri/nyst_labelled_videos/best_model.pth'
 save_path_info:
-    'D:/nyst_labelled_videos'
+    '/repo/porri/nyst_labelled_videos'
 save_path_wb:
-    'D:/models'
+    '/repo/porri/nyst/models'

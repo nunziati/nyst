@@ -19,7 +19,7 @@ class FirstPipeline:
     def __init__(self):
         self.region_selector = FirstRegionSelector()
         self.eye_roi_detector = FirstEyeRoiDetector("yolov8")
-        self.eye_roi_segmenter = FirstEyeRoiSegmenter('D:/model.h5')
+        self.eye_roi_segmenter = FirstEyeRoiSegmenter('/repo/porri/model.h5')
         self.left_eye_roi_latch = FirstLatch()
         self.right_eye_roi_latch = FirstLatch()
         self.pupil_detector = ThresholdingPupilDetector(threshold=50)
