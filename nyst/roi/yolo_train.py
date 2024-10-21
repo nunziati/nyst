@@ -6,7 +6,7 @@ import torch
 import yaml
 
 # Funzione di addestramento che verrà chiamata per ogni combinazione di parametri nel grid search
-def train(idx):
+def train():
     with wandb.init() as run:
         config = wandb.config  # Accede ai parametri di configurazione gestiti da W&B
 
@@ -19,6 +19,9 @@ def train(idx):
         # 2. Inizializza il modello YOLO
         model = YOLO("yolov8m.pt")  # Assicurati che il peso corretto sia presente
 
+        # 3. Aggiungi il callback di W&B per loggare i risultati durante il training
+        model.add_callback('on_train_epoch_end', add_wandb_callbacks())
+        
         # 5. Avvia l'addestramento del modello YOLO con i parametri dal config
         results = model.train(
             data=data_yaml,
@@ -28,17 +31,17 @@ def train(idx):
             batch=config.batch_size,  # Corretto accesso al batch_size
             lr0=config.lr,  # Corretto accesso al learning rate
             optimizer=config.optimizer,  # Corretto accesso all'optimizer
-            save_best=True  # Salva automaticamente il miglior modello
+            save=True  # Salva il modello
         )
 
         # Ottieni il percorso del miglior modello salvato
-        best_model_path = results.best_model  # Path del miglior modello
+        best_model_path = f'{results.save_dir}/weights/best.pt'  # Percorso del miglior modello
 
         # Usa l'ID del run per generare un nome univoco per il modello
-        unique_model_name = f"D:/model_yolo/best_model_{run.id}.pth"
+        unique_model_name = f"D:/model_yolo/best_model_{run.id}.pt"
 
-        # Salva manualmente il modello in un percorso specifico
-        torch.save(model.state_dict(), unique_model_name)
+        # Sposta o rinomina il miglior modello salvato al percorso personalizzato
+        torch.save(torch.load(best_model_path), unique_model_name)
 
         print(f"Best model saved at: {unique_model_name}")
 
