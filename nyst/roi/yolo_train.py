@@ -1,9 +1,10 @@
 from ultralytics import YOLO
-from wandb.integration.ultralytics import add_wandb_callback as add_wandb_callbacks
+from wandb.integration.ultralytics import add_wandb_callback  # Import corretto
 from roboflow import Roboflow
 import wandb
 import torch
 import yaml
+import shutil
 
 # Funzione di addestramento che verrà chiamata per ogni combinazione di parametri nel grid search
 def train():
@@ -14,14 +15,15 @@ def train():
         print("W&B Config:", config)
 
         # Imposta il dispositivo di training
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
         # 2. Inizializza il modello YOLO
         model = YOLO("yolov8m.pt")  # Assicurati che il peso corretto sia presente
 
         # 3. Aggiungi il callback di W&B per loggare i risultati durante il training
-        model.add_callback('on_train_epoch_end', add_wandb_callbacks())
-        
+        add_wandb_callback(model)  # Passa il modello direttamente a add_wandb_callback()
+
+    
         # 5. Avvia l'addestramento del modello YOLO con i parametri dal config
         results = model.train(
             data=data_yaml,
@@ -34,16 +36,18 @@ def train():
             save=True  # Salva il modello
         )
 
+
         # Ottieni il percorso del miglior modello salvato
-        best_model_path = f'{results.save_dir}/weights/best.pt'  # Percorso del miglior modello
+        best_model_path = f'{results.save_dir}/weights/best.pt'  # Percorso del miglior modello YOLOv8
 
         # Usa l'ID del run per generare un nome univoco per il modello
-        unique_model_name = f"D:/model_yolo/best_model_{run.id}.pt"
+        unique_model_name = f"/repo/porri/yolo_models/best_model_{run.id}.pt"
 
-        # Sposta o rinomina il miglior modello salvato al percorso personalizzato
-        torch.save(torch.load(best_model_path), unique_model_name)
+        # Copia il miglior modello salvato nella nuova destinazione
+        shutil.copy(best_model_path, unique_model_name)
 
-        print(f"Best model saved at: {unique_model_name}")
+        print(f"Best YOLO model saved at: {unique_model_name}")
+
 
         # 6. Segnala la fine del run
         wandb.finish()
