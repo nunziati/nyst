@@ -4,35 +4,59 @@ import json
 import pandas as pd
 
 
-# Funzione per sostituire gli spazi all'interno delle liste con delle virgole
+# Function to replace spaces within lists with commas
 def replace_spaces_with_commas(value):
-    if isinstance(value, str):  # Verifica se il valore è una stringa
-        # Cerca all'interno delle parentesi quadre e sostituisci gli spazi con delle virgole
-        value = re.sub(r'\[\s*([^\]]+?)\s*\]', lambda m: '[' + ','.join(m.group(1).split()) + ']', value)
-    return value  # Restituisce il valore modificato
+    """
+    Replaces spaces within lists represented as strings with commas.
 
-# Funzione per correggere le virgole multiple e ripristinare la formattazione corretta
+    Args:
+        value (str): The value to modify, containing lists as strings. If the value is not a string, 
+                     the function returns it unchanged.
+
+    Returns:
+        str: The modified string with spaces inside lists replaced by commas.
+    """
+    if isinstance(value, str):
+        # Search inside square brackets and replace spaces with commas
+        value = re.sub(r'\[\s*([^\]]+?)\s*\]', lambda m: '[' + ','.join(m.group(1).split()) + ']', value)
+    return value
+
+# Function to fix multiple commas and restore proper formatting
 def clean_comma_issues(value):
-    if isinstance(value, str):  # Verifica se il valore è una stringa
-        # Usa una regex per rimuovere virgole consecutive (es. ,,) e sostituiscile con una sola virgola
+    """
+    Cleans up multiple consecutive commas in a string and removes any leading or trailing commas.
+
+    Args:
+        value (str): The value to clean, typically a string containing multiple commas.
+
+    Returns:
+        str: The cleaned string with consecutive commas reduced to a single comma and no leading/trailing commas.
+        If the input is not a string, the function returns the original value unchanged.
+    """
+    if isinstance(value, str):
+        # Use regex to remove consecutive commas (e.g., ,,) and replace them with a single comma
         clean_value = re.sub(r',+', ',', value)
         
-        # Rimuovi eventuali virgole all'inizio o alla fine
+        # Remove any commas at the beginning or end
         clean_value = clean_value.strip(',')
         
-        # Restituisci il valore pulito
+        # Return the cleaned value
         return clean_value
-    return value  # Restituisce il valore così com'è se non è una stringa
+    
+    return value
 
+# Converts a string representation of a list into a Python list of floats
 def parse_float_list(string_value):
     """
     Converts a string representation of a list into a Python list of floats, handling 'nan' values.
 
-    Arguments:
-    - string_value (str): A string that represents a list of numerical values, which may include 'nan' as a placeholder for missing values.
+    Args:
+        string_value (str or np.ndarray): A string representing a list of numerical values, or a NumPy array, which 
+                                          may include 'nan' as a placeholder for missing values.
 
     Returns:
-    - float_list (list): A list of floats where 'nan' strings in the input are replaced with Python's float('nan') to represent missing values.
+        list: A list of floats where 'nan' strings in the input are replaced with Python's float('nan') to represent 
+              missing values. If parsing fails, an empty list is returned.
     """
     if isinstance(string_value, str):  # Check if it's a string
         string_value = string_value.replace('nan', 'null')
@@ -45,7 +69,7 @@ def parse_float_list(string_value):
             print(f"Error decoding JSON: {string_value}")
             return []  # Return an empty list in case of a decoding error
         
-    elif isinstance(string_value, np.ndarray):         
+    elif isinstance(string_value, np.ndarray):  # Check if it's a np.ndarray      
         # Convert the NumPy array to a list and then to a string
         string_value = str(string_value.tolist()).replace('nan', 'null')  # Replace 'nan' with 'null'
         # Use json.loads to convert the string to a Python list
@@ -55,14 +79,25 @@ def parse_float_list(string_value):
         print(f"Warning: Expected string but got {type(string_value)}. Returning empty list.")
         return []
     
-# Funzione per salvare i dati
+# Function to save data into a csv
 def save_csv(data, csv_file):
+    """
+    Processes and saves the data into a CSV file. The function replaces spaces in list representations with commas,
+    cleans up multiple commas, converts strings into lists of floats, and saves the modified data.
 
+    Args:
+        data (pandas.DataFrame): The dataset containing the signal data to be processed.
+        csv_file (str): The path to the CSV file where the processed data will be saved.
+
+    Returns:
+        None: The function saves the processed data to a CSV file without returning anything.
+    """
     new_dataset = []
-    # Ciclo per ogni riga nei dati
+    
+    # Loop through each row in the data
     for _, row in data.iterrows():
         try:
-            # Sostituisce gli spazi nelle liste con delle virgole
+            # Replace spaces in lists with commas
             row['left_position X'] = replace_spaces_with_commas(row['left_position X'])
             row['left_position Y'] = replace_spaces_with_commas(row['left_position Y'])
             row['right_position X'] = replace_spaces_with_commas(row['right_position X'])
@@ -72,7 +107,7 @@ def save_csv(data, csv_file):
             row['right_speed X'] = replace_spaces_with_commas(row['right_speed X'])
             row['right_speed Y'] = replace_spaces_with_commas(row['right_speed Y'])
 
-            # Pulisce le virgole multiple
+            # Replace multiple commas
             row['left_position X'] = clean_comma_issues(row['left_position X'])
             row['left_position Y'] = clean_comma_issues(row['left_position Y'])
             row['right_position X'] = clean_comma_issues(row['right_position X'])
@@ -82,7 +117,7 @@ def save_csv(data, csv_file):
             row['right_speed X'] = clean_comma_issues(row['right_speed X'])
             row['right_speed Y'] = clean_comma_issues(row['right_speed Y'])
 
-            # Converti le stringhe in liste di float
+            # Convert strings to Python lists of floats
             left_pos_x = np.array(parse_float_list(row['left_position X']))
             left_pos_y = np.array(parse_float_list(row['left_position Y']))
             right_pos_x = np.array(parse_float_list(row['right_position X']))
@@ -92,7 +127,7 @@ def save_csv(data, csv_file):
             right_speed_x = np.array(parse_float_list(row['right_speed X']))
             right_speed_y = np.array(parse_float_list(row['right_speed Y']))
 
-            # Crea una nuova riga con i segnali invertiti
+            # Create a new row with the processed signals
             flipped_row = {
                 'video': row['video'],
                 'resolution': row['resolution'],
@@ -107,15 +142,15 @@ def save_csv(data, csv_file):
                 'label': row['label']
             }
 
-            # Aggiunge la riga invertita alla lista
+            # Append the processed row to the list 
             new_dataset.append(flipped_row)
 
         except (ValueError, SyntaxError) as e:
             print(f"Error processing row {row['video']}: {e}")
-            continue  # Salta la riga se c'è un problema con i dati
+            continue 
 
-    # Converti la lista di righe augmentate in un DataFrame
+    # Convert the list of processed rows into a DataFrame
     new_dataset_df = pd.DataFrame(new_dataset)
 
-    # Aggiungi le righe augmentate al file CSV esistente
+    # Save the processed data to the specified CSV file
     new_dataset_df.to_csv(csv_file, mode='w', index=False)

@@ -10,7 +10,23 @@ from nyst.dataset.utils_function import *
 
 # Function to invert signals directions to augment data 
 def augment_data(data, csv_file):
-    
+    """
+    Augments the provided DataFrame by flipping positional and speed data, 
+    and appending the augmented data to a specified CSV file.
+
+    Args:
+        data (pd.DataFrame): A DataFrame containing the original data with columns 
+                             'left_position X', 'left_position Y', 'right_position X', 
+                             'right_position Y', 'left_speed X', 'left_speed Y', 
+                             'right_speed X', 'right_speed Y', 'video', 'resolution', 
+                             and 'label'.
+        csv_file (str): The file path of the CSV file where the augmented data 
+                        will be appended.
+
+    Returns:
+        None: This function does not return any value. Instead, it appends the 
+              augmented data directly to the specified CSV file.
+    """    
     # Function to augment data
     augmented_rows = []
 
