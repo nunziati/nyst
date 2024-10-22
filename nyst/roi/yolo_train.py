@@ -73,16 +73,19 @@ if __name__ == '__main__':
     with open('config_wb.yaml') as file:
         sweep_config = yaml.safe_load(file)
 
-    # Recupera gli sweep esistenti dal progetto
+     # Recupera gli sweep esistenti dal progetto
     sweep_id = None
     project_name = "yolo-eyes"  # Assicurati che il nome del progetto sia corretto
 
-    # Ottieni gli sweep esistenti
-    sweeps = wandb.sweeps(project=project_name)
+    # Usa wandb.Api per ottenere gli sweep esistenti
+    api = wandb.Api()
 
-    if sweeps:
+    # Ottieni il progetto
+    project_sweeps = api.sweeps(path=f"nyst-unisi/{project_name}")
+
+    if project_sweeps:
         # Se ci sono sweep esistenti, prendi il primo
-        sweep_id = sweeps[0]['id']
+        sweep_id = project_sweeps[0].id
         print(f"Using existing sweep ID: {sweep_id}")
     else:
         # Se non ci sono sweep esistenti, creane uno nuovo
