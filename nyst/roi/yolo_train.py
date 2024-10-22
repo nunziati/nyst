@@ -18,7 +18,7 @@ def train():
         device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
         # 2. Inizializza il modello YOLO
-        model = YOLO("yolov8m.pt")  # Assicurati che il peso corretto sia presente
+        model = YOLO("yolov8s.pt")  # Assicurati che il peso corretto sia presente
 
         # 3. Aggiungi il callback di W&B per loggare i risultati durante il training
         add_wandb_callback(model)  # Passa il modello direttamente a add_wandb_callback()
@@ -29,7 +29,7 @@ def train():
             data=data_yaml,
             epochs=config.epochs,  # Corretto accesso a 'epochs'
             device=device,
-            project='Nystagmus detection',
+            project='Nystagmus_detection',
             batch=config.batch_size,  # Corretto accesso al batch_size
             lr0=config.lr,  # Corretto accesso al learning rate
             optimizer=config.optimizer,  # Corretto accesso all'optimizer
@@ -73,8 +73,21 @@ if __name__ == '__main__':
     with open('config_wb.yaml') as file:
         sweep_config = yaml.safe_load(file)
 
-    # Crea uno sweep in W&B utilizzando la configurazione caricata
-    sweep_id = wandb.sweep(sweep_config, project="yolo-eyes")
+    # Recupera gli sweep esistenti dal progetto
+    sweep_id = None
+    project_name = "yolo-eyes"  # Assicurati che il nome del progetto sia corretto
+
+    # Ottieni gli sweep esistenti
+    sweeps = wandb.sweeps(project=project_name)
+
+    if sweeps:
+        # Se ci sono sweep esistenti, prendi il primo
+        sweep_id = sweeps[0]['id']
+        print(f"Using existing sweep ID: {sweep_id}")
+    else:
+        # Se non ci sono sweep esistenti, creane uno nuovo
+        sweep_id = wandb.sweep(sweep_config, project=project_name)
+        print(f"Created new sweep ID: {sweep_id}")
 
     # Avvia lo sweep
     wandb.agent(sweep_id, function=train)  # count specifica il numero massimo di esecuzioni dello sweep
