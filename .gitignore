@@ -176,3 +176,5 @@ data/
 # dataset yolo fold
 /nyst/roi/Eyes3.0-2
 /Eyes3.0-2
+/nyst/roi/Nystagmus_detection
+/nyst/roi/yolo-eyes

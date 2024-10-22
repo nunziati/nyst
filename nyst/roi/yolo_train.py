@@ -7,8 +7,8 @@ import yaml
 import shutil
 
 # Funzione di addestramento che verrà chiamata per ogni combinazione di parametri nel grid search
-def train():
-    with wandb.init() as run:
+def train(exp_config):
+    with wandb.init(config=exp_config, project=exp_config["project"]) as run:
         config = wandb.config  # Accede ai parametri di configurazione gestiti da W&B
 
         # Stampa per verificare i valori
@@ -18,7 +18,7 @@ def train():
         device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
         # 2. Inizializza il modello YOLO
-        model = YOLO("yolov8s.pt")  # Assicurati che il peso corretto sia presente
+        model = YOLO("yolov8m.pt")  # Assicurati che il peso corretto sia presente
 
         # 3. Aggiungi il callback di W&B per loggare i risultati durante il training
         add_wandb_callback(model)  # Passa il modello direttamente a add_wandb_callback()
@@ -29,7 +29,9 @@ def train():
             data=data_yaml,
             epochs=config.epochs,  # Corretto accesso a 'epochs'
             device=device,
-            project='Nystagmus_detection',
+            imgsz=640,  # Reduce image size from the default (often 640)
+            amp=True,   # Ensure mixed precision is enabled
+            project='yolo-eyes',
             batch=config.batch_size,  # Corretto accesso al batch_size
             lr0=config.lr,  # Corretto accesso al learning rate
             optimizer=config.optimizer,  # Corretto accesso all'optimizer
@@ -52,6 +54,8 @@ def train():
         # 6. Segnala la fine del run
         wandb.finish()
 
+
+
 if __name__ == '__main__':
 
     # 1. Inizializza il client Roboflow
@@ -60,7 +64,7 @@ if __name__ == '__main__':
     # Usa l'ID del progetto per accedere direttamente al progetto
     try:
         project = rf.project("andreap/eyes3.0-ascvn")
-        dataset = project.version(2).download("yolov8")
+        dataset = project.version(2).download("yolov8", location="/tmp/roboflow/eye_data/")
         data_yaml = dataset.location + "/data.yaml"
     except RuntimeError as e:
         print("Error downloading dataset:", e)
@@ -69,28 +73,37 @@ if __name__ == '__main__':
     # Logs into the Weights and Biases (W&B) platform, ensuring the user is authenticated
     wandb.login()
 
-    # Carica la configurazione dello sweep da un file YAML
+    # Carica la configurazione dello sweep/esperimento da un file YAML
     with open('config_wb.yaml') as file:
         sweep_config = yaml.safe_load(file)
 
-     # Recupera gli sweep esistenti dal progetto
-    sweep_id = None
-    project_name = "yolo-eyes"  # Assicurati che il nome del progetto sia corretto
+    config = sweep_config["parameters"]
+    
+    for param in config:
+        config[param] = config[param]["values"][0]
 
-    # Usa wandb.Api per ottenere gli sweep esistenti
+    config["project"] = sweep_config["project"]
+    
+    train(config)
+
+    """# Set up wandb.Api
     api = wandb.Api()
+    project_name = "yolo-eyes"
+    sweep_id = None
 
-    # Ottieni il progetto
-    project_sweeps = api.sweeps(path=f"nyst-unisi/{project_name}")
+    # Ottieni i run dal progetto e cerca sweep
+    runs = api.runs(f"nyst-unisi/{project_name}")
 
-    if project_sweeps:
-        # Se ci sono sweep esistenti, prendi il primo
-        sweep_id = project_sweeps[0].id
+    for run in runs:
+        if run.sweep:  # Controlla se il run è associato a uno sweep
+            sweep_id = run.sweep.id
+            break
+
+    if sweep_id:
         print(f"Using existing sweep ID: {sweep_id}")
     else:
-        # Se non ci sono sweep esistenti, creane uno nuovo
         sweep_id = wandb.sweep(sweep_config, project=project_name)
         print(f"Created new sweep ID: {sweep_id}")
 
-    # Avvia lo sweep
-    wandb.agent(sweep_id, function=train)  # count specifica il numero massimo di esecuzioni dello sweep
+    # Ensure both entity and project are specified for the sweep agent
+    wandb.agent(sweep_id, function=train, entity="nyst-unisi", project=project_name)"""
