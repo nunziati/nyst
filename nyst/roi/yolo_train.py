@@ -1,109 +1,111 @@
 from ultralytics import YOLO
-from wandb.integration.ultralytics import add_wandb_callback  # Import corretto
+from wandb.integration.ultralytics import add_wandb_callback
 from roboflow import Roboflow
 import wandb
 import torch
 import yaml
 import shutil
 
-# Funzione di addestramento che verrà chiamata per ogni combinazione di parametri nel grid search
+# Function to train the YOLO model for Eyes Detection
 def train(exp_config):
-    with wandb.init(config=exp_config, project=exp_config["project"]) as run:
-        config = wandb.config  # Accede ai parametri di configurazione gestiti da W&B
+    """
+    Trains a YOLOv8 model for eye detection using the provided experiment configuration.
 
-        # Stampa per verificare i valori
+    Args:
+        exp_config (dict): 
+            A dictionary containing the configuration for the experiment, including:
+            - "project" (str): The name of the Weights & Biases (W&B) project.
+            - "epochs" (int): Number of training epochs.
+            - "batch_size" (int): Size of the mini-batch for training.
+            - "lr" (float): Initial learning rate.
+            - "optimizer" (str): The optimizer to use ('SGD', 'Adam', etc.).
+
+    Returns:
+        None: The function does not return any values, but logs training metrics to W&B and saves the best-performing model locally.
+    """
+    # Initialize a W&B run with the specified experiment configuration and project name
+    with wandb.init(config=exp_config, project=exp_config["project"]) as run:
+        
+        # Access the W&B configuration for this specific run
+        config = wandb.config
+
+        # Print the current W&B configuration
         print("W&B Config:", config)
 
-        # Imposta il dispositivo di training
+        # Set the training device
         device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
-        # 2. Inizializza il modello YOLO
-        model = YOLO("yolov8m.pt")  # Assicurati che il peso corretto sia presente
+        # Initialize the YOLO model
+        model = YOLO("yolov8m.pt")
 
-        # 3. Aggiungi il callback di W&B per loggare i risultati durante il training
+        # Add the W&B callback to log training metrics
         add_wandb_callback(model)  # Passa il modello direttamente a add_wandb_callback()
 
     
-        # 5. Avvia l'addestramento del modello YOLO con i parametri dal config
+        # Start the YOLO model training
         results = model.train(
-            data=data_yaml,
-            epochs=config.epochs,  # Corretto accesso a 'epochs'
+            data=data_yaml, # Path to the dataset YAML file for training
+            epochs=config.epochs,
             device=device,
-            imgsz=640,  # Reduce image size from the default (often 640)
-            amp=True,   # Ensure mixed precision is enabled
+            imgsz=640,
             project='yolo-eyes',
-            batch=config.batch_size,  # Corretto accesso al batch_size
-            lr0=config.lr,  # Corretto accesso al learning rate
-            optimizer=config.optimizer,  # Corretto accesso all'optimizer
-            save=True  # Salva il modello
+            batch=config.batch_size,
+            lr0=config.lr,
+            optimizer=config.optimizer,
+            save=True  # Ensure that the trained model is saved
         )
 
 
-        # Ottieni il percorso del miglior modello salvato
-        best_model_path = f'{results.save_dir}/weights/best.pt'  # Percorso del miglior modello YOLOv8
+        # Get the path to the best-performing model checkpoint
+        best_model_path = f'{results.save_dir}/weights/best.pt'
 
-        # Usa l'ID del run per generare un nome univoco per il modello
+        # Generate a unique filename using the W&B run ID to save the best model
         unique_model_name = f"/repo/porri/yolo_models/best_model_{run.id}.pt"
 
-        # Copia il miglior modello salvato nella nuova destinazione
+        # Copy the best model file to the specified destination
         shutil.copy(best_model_path, unique_model_name)
 
         print(f"Best YOLO model saved at: {unique_model_name}")
 
 
-        # 6. Segnala la fine del run
+        # Mark the end of the current W&B run
         wandb.finish()
 
 
-
+# Entry point
 if __name__ == '__main__':
 
-    # 1. Inizializza il client Roboflow
-    rf = Roboflow(api_key="2PgwSNm3Z6uQgPaynNMR")  # Sostituisci con la tua chiave API
+    # Initialize the Roboflow client using the provided API key
+    rf = Roboflow(api_key="2PgwSNm3Z6uQgPaynNMR")  # Replace with your actual API key
 
-    # Usa l'ID del progetto per accedere direttamente al progetto
+    # Access the specific Roboflow project and download the dataset in YOLO forma
     try:
+        # Takes the dataset and downloads
         project = rf.project("andreap/eyes3.0-ascvn")
         dataset = project.version(2).download("yolov8", location="/tmp/roboflow/eye_data/")
+        # Set the path to the dataset configuration file (data.yaml)
         data_yaml = dataset.location + "/data.yaml"
     except RuntimeError as e:
         print("Error downloading dataset:", e)
         exit(1)
 
-    # Logs into the Weights and Biases (W&B) platform, ensuring the user is authenticated
+    # Log into Weights & Biases (W&B) for experiment tracking, ensuring user authentication
     wandb.login()
 
-    # Carica la configurazione dello sweep/esperimento da un file YAML
+    # Load the configuration from a YAML file
     with open('config_wb.yaml') as file:
         sweep_config = yaml.safe_load(file)
 
+    # Access the parameters section of the sweep configuration
     config = sweep_config["parameters"]
     
+    # Set each parameter to its default value (the first listed in 'values') from the configuration
     for param in config:
         config[param] = config[param]["values"][0]
 
+    # Set the project name in the configuration for W&B tracking
     config["project"] = sweep_config["project"]
     
+    # Call the training function with the current configuration to start the training process
     train(config)
 
-    """# Set up wandb.Api
-    api = wandb.Api()
-    project_name = "yolo-eyes"
-    sweep_id = None
-
-    # Ottieni i run dal progetto e cerca sweep
-    runs = api.runs(f"nyst-unisi/{project_name}")
-
-    for run in runs:
-        if run.sweep:  # Controlla se il run è associato a uno sweep
-            sweep_id = run.sweep.id
-            break
-
-    if sweep_id:
-        print(f"Using existing sweep ID: {sweep_id}")
-    else:
-        sweep_id = wandb.sweep(sweep_config, project=project_name)
-        print(f"Created new sweep ID: {sweep_id}")
-
-    # Ensure both entity and project are specified for the sweep agent
-    wandb.agent(sweep_id, function=train, entity="nyst-unisi", project=project_name)"""
