@@ -1,5 +1,5 @@
 # SWEEP SETTINGS
-project: yolo-eyes
+project: yolo-eyes-andrea # Project name
 
 method: grid  # Can be 'random' or 'grid'
 
