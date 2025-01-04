@@ -3,7 +3,7 @@ import cv2
 from ultralytics import YOLO
 
 # Carica il modello YOLOv8 finetunato
-model = YOLO('D:/model_yolo/best_11_a0.pt')  # Sostituisci con il percorso corretto al tuo file .pt
+model = YOLO('D:/model_yolo/best_yolo11m.pt')  # Sostituisci con il percorso corretto al tuo file .pt
 
 # Specifica la cartella dei video di input e quella di output
 input_folder = "D:/prova"

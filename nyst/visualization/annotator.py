@@ -23,9 +23,9 @@ class FirstFrameAnnotator:
         # Get the dimensions of the frame
         rows, cols, _ = frame.shape
 
-        # Extract the x and y coordinates of the left and right pupils center
-        left_x, left_y = left_pupil_absolute_position
-        right_x, right_y = right_pupil_absolute_position
+        # Extract and convert the x and y coordinates of the left and right pupils to integers
+        left_x, left_y = map(int, left_pupil_absolute_position)
+        right_x, right_y = map(int, right_pupil_absolute_position)
         
         # Draw crosshairs on the left pupil if coordinates are available
         if left_x is not None and left_y is not None:

@@ -61,7 +61,7 @@ def main(option):
 
         try:
             ### YAML ###
-            _, _, _, _, _, input_folder_extr, output_folder_extr, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+            _, _, _, _, _, input_folder_extr, output_folder_extr, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
             
             # Initialize the pipeline
             pipeline = FirstPipeline()

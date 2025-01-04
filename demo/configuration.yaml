@@ -25,7 +25,7 @@ overlapping:
                                                   ############################################################
 # PATHS
 input_folder_extr:
-    '/repo/porri/nyst_labelled_videos/videos'
+    'D:/nyst_labelled_videos/videos'
 output_folder_extr:
     'D:/nyst_labelled_videos'
   
@@ -40,6 +40,13 @@ csv_input_file:
     '/repo/porri/nyst_labelled_videos/video_features.csv'
 csv_label_file:
     'D:/nyst_labelled_videos/labels.csv'
+
+                                                  ############################################################
+
+                                                  #                   TRAINING FULL NET STEP
+
+                                                  ############################################################  
+
 save_path:
     '/repo/porri/nyst_labelled_videos/best_model.pth'
 save_path_info:

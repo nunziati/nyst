@@ -4,4 +4,4 @@ class FirstRegionSelector:
 
     # Crop the frame with the specified Region Of Interest (ROI)
     def apply(self, frame, roi):
-        return frame[roi[1]:roi[3], roi[0]:roi[2]]
+        return frame[int(roi[1]):int(roi[3]), int(roi[0]):int(roi[2])]

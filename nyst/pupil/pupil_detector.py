@@ -186,4 +186,4 @@ class ThresholdingPupilDetector:
         if relative_position[0] is None or relative_position[1] is None:
             return None,None
         # Convert relative position to absolute position based on the ROI
-        return roi[0] + relative_position[0], roi[1] + relative_position[1]
+        return int(roi[0] + relative_position[0]), int(roi[1] + relative_position[1])
