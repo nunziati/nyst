@@ -43,10 +43,11 @@ class FirstPipeline:
         - right_pupil_absolute_position: The absolute (x, y) position of the right pupil in the frame.
         - count_from_lastRoiupd: The updated counter indicating the number of frames since the last ROI update.
         '''
-        # CONTROL 1 #
+
+        '''# CONTROL 1 #
         print('================================ CONTROL STEP 1 =================================')
         print(f"Frame type: {type(frame)}, Frame shape: {getattr(frame, 'shape', 'N/A')}")
-        print(f"count_from_lastRoiupd: {count_from_lastRoiupd}, threshold: {threshold}, update_roi: {update_roi}")       
+        print(f"count_from_lastRoiupd: {count_from_lastRoiupd}, threshold: {threshold}, update_roi: {update_roi}")'''
        
         # Update the eye ROI if specified and if the count is less than a threshold
         if update_roi and count_from_lastRoiupd < threshold:
@@ -82,7 +83,7 @@ class FirstPipeline:
         left_eye_frame = self.region_selector.apply(frame, left_eye_roi)
         right_eye_frame = self.region_selector.apply(frame, right_eye_roi)
 
-        # CONTROL #
+        '''# CONTROL #
         print('================================ CONTROL STEP 2 =================================')
         # Frame size control
         if frame is not None and len(frame.shape) == 3:
@@ -96,7 +97,7 @@ class FirstPipeline:
             raise ValueError("La selezione della regione ha restituito un frame nullo.")
 
         print(f"Left eye frame shape: {left_eye_frame.shape}")
-        print(f"Right eye frame shape: {right_eye_frame.shape}")
+        print(f"Right eye frame shape: {right_eye_frame.shape}")'''
         
         # Check if the frames are empty and return None
         #if left_eye_frame.shape[0] == 0 or left_eye_frame.shape[1] == 0 or right_eye_frame.shape[0] == 0 or right_eye_frame.shape[1] == 0:
@@ -111,15 +112,15 @@ class FirstPipeline:
             raise ValueError("I valori delle ROI devono essere numerici.")
 
         # Show the frames with the detected eye ROIs
-        cv2.imshow('Left eye box',left_eye_frame)
-        cv2.imshow('Right eye box',right_eye_frame)
+        #cv2.imshow('Left eye box',left_eye_frame)
+        #cv2.imshow('Right eye box',right_eye_frame)
        
         # Apply segmentation to the eye frames ROI
         left_eye_frame = self.eye_roi_segmenter.apply(left_eye_frame)
         right_eye_frame = self.eye_roi_segmenter.apply(right_eye_frame)
         # Show the segmented eye of the frames
-        cv2.imshow('Left eye segmented',left_eye_frame)
-        cv2.imshow('Right eye segmented',right_eye_frame)
+        #cv2.imshow('Left eye segmented',left_eye_frame)
+        #cv2.imshow('Right eye segmented',right_eye_frame)
 
         # Detect the relative position of the pupil in each eye frame
         left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame)
@@ -136,11 +137,11 @@ class FirstPipeline:
         else:
             right_pupil_absolute_position = (None, None)
 
-        # CONTROL #
+        '''# CONTROL #
         print('================================ CONTROL STEP 3 =================================')
 
         print(f"Left pupil position: {left_pupil_absolute_position}")
-        print(f"Right pupil position: {right_pupil_absolute_position}")
+        print(f"Right pupil position: {right_pupil_absolute_position}")'''
 
         
         return left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd
@@ -181,7 +182,7 @@ class FirstPipeline:
         count = 0
 
         # Print the frame counter
-        print("\n\nElaborando frame 0...")
+        print("\n\nFrame: 0")
 
         if ret is False:
             # Raise an error if the frame could not be read
@@ -216,7 +217,7 @@ class FirstPipeline:
             count += 1
             
             # Print the frame counter
-            print(f"\n\nElaborando frame {count}...")
+            print(f"\n\nFrame: {count}")
            
             # Apply the processing method to the frame
             try:
