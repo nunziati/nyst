@@ -21,6 +21,8 @@ class FirstPipeline:
         self.eye_roi_detector = FirstEyeRoiDetector("D:/model_yolo/best_yolo11m.pt")
         self.left_eye_roi_latch = FirstLatch()
         self.right_eye_roi_latch = FirstLatch()
+        self.left_eye_center_latch = FirstLatch()
+        self.right_eye_center_latch = FirstLatch()
         self.eye_roi_segmenter = FirstEyeRoiSegmenter('D:/model.h5')
         self.pupil_detector = ThresholdingPupilDetector(threshold=50)
         self.preprocess = PreprocessingSignalsVideos()
@@ -99,10 +101,6 @@ class FirstPipeline:
         print(f"Left eye frame shape: {left_eye_frame.shape}")
         print(f"Right eye frame shape: {right_eye_frame.shape}")'''
         
-        # Check if the frames are empty and return None
-        #if left_eye_frame.shape[0] == 0 or left_eye_frame.shape[1] == 0 or right_eye_frame.shape[0] == 0 or right_eye_frame.shape[1] == 0:
-            #return (None, None), (None, None), count_from_lastRoiupd
-
         # Checking validity of ROIs
         if not all(isinstance(roi, np.ndarray) for roi in [left_eye_roi, right_eye_roi]):
             raise ValueError("Le ROI devono essere array NumPy.")
@@ -129,13 +127,19 @@ class FirstPipeline:
         # Convert the relative pupil positions to absolute positions based on the ROI 
         if left_pupil_relative_position[0] is not None and left_pupil_relative_position[1] is not None:
             left_pupil_absolute_position = self.pupil_detector.relative_to_absolute(left_pupil_relative_position, left_eye_roi) # (X,Y) Absolute position of the left eye
+            # Save the absolute centers to the latch variables
+            self.left_eye_center_latch.set(left_pupil_absolute_position)
         else:
-            left_pupil_absolute_position = (None, None)
+            left_pupil_absolute_position =  self.left_eye_center_latch.get()
+            print("Get the left center correct position.")
         
         if right_pupil_relative_position[0] is not None and right_pupil_relative_position[1] is not None:
             right_pupil_absolute_position = self.pupil_detector.relative_to_absolute(right_pupil_relative_position, right_eye_roi) # (X,Y) Absolute position of the right eye
+            # Save the absolute centers to the latch variables
+            self.right_eye_center_latch.set(right_pupil_absolute_position)
         else:
-            right_pupil_absolute_position = (None, None)
+            right_pupil_absolute_position =  self.right_eye_center_latch.get()
+            print("Get the right center correct position.")
 
         '''# CONTROL #
         print('================================ CONTROL STEP 3 =================================')
@@ -199,8 +203,8 @@ class FirstPipeline:
         annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
         
         # Display the annotated frame
-        # cv2.imshow("frame", annotated_frame)
-        cv2.waitKey(1)
+        #cv2.imshow("frame", annotated_frame)
+        #cv2.waitKey(1)
 
         # Write the annotated frame to the video writer
         annotated_video_writer.write(annotated_frame)

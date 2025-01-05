@@ -1,7 +1,7 @@
 import sys
 import os
 
-# Aggiungi la directory 'code' al PYTHONPATH
+# Add the directory 'code' to the PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from demo.yaml_function import load_hyperparams, pathConfiguratorYaml
@@ -19,33 +19,32 @@ def main(option):
 
         try:
             ### YAML ###
-            input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml)
+            input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml)
             
-            # Flattening video directories
-            flattenVideoDirectories(input_folder_lab, flattened_folder_lab)
+            ### FLATTENING STEP ###
+            #flattenVideoDirectories(input_folder_lab, flattened_folder_lab)
 
             user_input = input('\nFlatten Step completed. Press any key to continue, otherwise press q to terminate the program: ')
-
             # Terminate the program
             if user_input.lower() == 'q':
                 print('\nProgram terminated by the user.')
                 exit()  
 
-            rotation_input = input('\nPress y to execute rotation step: ')
             
+            ### ROTATION STEP ###
+            rotation_input = input('\nPress y to execute rotation step: ')
             # Rotate the videos
             if rotation_input == 'y':
                 # Usa la funzione
                 process_videos_in_directory(flattened_folder_lab)
             
             user_input = input('\nRotation Step completed. Press any key to continue, otherwise press q to terminate the program: ')
-
             # Terminate the program
             if user_input.lower() == 'q':
                 print('\nProgram terminated by the user.')
                 exit()
 
-            # Labelling videos
+            ### LABELLING VIDEOS STEP ###
             labelling_videos(flattened_folder_lab, output_folder_lab, clip_duration, overlapping)
 
             print('\n\n --------------------------> Labelling step is COMPLETED <-------------------------- ')

@@ -10,7 +10,7 @@ class ThresholdingPupilDetector:
     '''
     def __init__(self, threshold):
         self.threshold = threshold
-
+        
     
     def apply(self, frame):
         '''
