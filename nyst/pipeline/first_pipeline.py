@@ -29,7 +29,7 @@ class FirstPipeline:
         self.frame_annotator = FirstFrameAnnotator()
         self.speed_extractor = FirstSpeedExtractor()
         
-    def apply(self, frame, count_from_lastRoiupd:int, threshold:int=30, update_roi:bool=True) -> tuple:
+    def apply(self, frame, count_from_lastRoiupd:int, count:int, threshold:int=30, update_roi:bool=True) -> tuple:
         '''
         Applies the eye detection and pupil position extraction on a given video frame.
 
@@ -121,8 +121,8 @@ class FirstPipeline:
         #cv2.imshow('Right eye segmented',right_eye_frame)
 
         # Detect the relative position of the pupil in each eye frame
-        left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame)
-        right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame)
+        left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame,count)
+        right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame,count)
         
         # Convert the relative pupil positions to absolute positions based on the ROI 
         if left_pupil_relative_position[0] is not None and left_pupil_relative_position[1] is not None:
@@ -193,7 +193,7 @@ class FirstPipeline:
             raise RuntimeError("Error reading video")
         
         # Apply the processing method for absolute position pupil estimation to the frame
-        left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd)
+        left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,count)
 
         # Append the positions to the respective lists (list of tuple of absolute x,y coordinates)
         left_eye_absolute_positions.append(left_pupil_absolute_position)
@@ -225,7 +225,7 @@ class FirstPipeline:
            
             # Apply the processing method to the frame
             try:
-                left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame, count_from_lastRoiupd)
+                left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame, count_from_lastRoiupd, count)
             except Exception as e:
                 print(f"Errore durante l'elaborazione del frame {count}: {e}")
                 traceback.print_exc()
@@ -322,6 +322,10 @@ class FirstPipeline:
                         print(f'\n\nFeature extraction of the video: {video} ----- Video: {idx}')
                         # Run the processing on the video
                         output_dict = self.run(video_path, output_path, idx)
+
+                        # Salva i risultati del PupilDetector in un file
+                        self.pupil_detector.save_threshold_counts("D:/nyst_labelled_videos/threshold_counts.txt", video)
+                        print("Saved threshold counts to threshold_counts.txt.")
 
                         # Create a unique path for the output video name
                         output_video_relative_path = os.path.normpath(os.path.join("videos", video)) # Create the relative path for the output video

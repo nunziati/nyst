@@ -9,6 +9,21 @@ video_extensions = ['.mp4', '.mkv']
 
 # Main function to handle videos labelling process
 def labelling_videos(input_path, output_path, clip_duration=10, overlapping=8):
+    """
+    Processes a directory containing videos, segmenting them into clips of defined duration,
+    managing overlaps between clips, and allowing the user to label each clip
+    as 0 or 1 via an interactive window.
+
+    Args:
+        input_path (str): Path to the input directory containing the videos.
+        output_path (str): Path to the output directory where processed clips and labels are saved.
+        clip_duration (int, optional): Duration of each clip in seconds. Default value: 10 seconds.
+        overlapping (int, optional): Number of seconds of overlap between consecutive clips. Default value: 8 seconds.
+
+    Returns:
+        None: The results are saved in the file `labels.csv` in the specified output directory, and the segmented clips 
+              are saved in the `videos` subdirectory.
+    """
 
     # List to store video labels
     labels = [] 

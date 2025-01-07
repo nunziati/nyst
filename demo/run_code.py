@@ -19,7 +19,7 @@ def main(option):
 
         try:
             ### YAML ###
-            input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml)
+            input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml)
             
             ### FLATTENING STEP ###
             #flattenVideoDirectories(input_folder_lab, flattened_folder_lab)
@@ -60,7 +60,7 @@ def main(option):
 
         try:
             ### YAML ###
-            _, _, _, _, _, input_folder_extr, output_folder_extr, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+            _, _, _, _, _, input_folder_extr, output_folder_extr, _, _, _,_, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
             
             # Initialize the pipeline
             pipeline = FirstPipeline()
