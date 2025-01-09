@@ -186,7 +186,7 @@ class FirstPipeline:
         count = 0
 
         # Print the frame counter
-        print("\n\nFrame: 0")
+        print("\n\nFrame: 0  ---------------------------------------------------------------")
 
         if ret is False:
             # Raise an error if the frame could not be read
@@ -221,7 +221,7 @@ class FirstPipeline:
             count += 1
             
             # Print the frame counter
-            print(f"\n\nFrame: {count}")
+            print(f"\n\nFrame: {count} ---------------------------------------------------------------")
            
             # Apply the processing method to the frame
             try:

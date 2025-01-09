@@ -1,5 +1,6 @@
 import cv2
 import os
+import shutil
 import matplotlib.pyplot as plt
 
 # Rotate a single frame in the specified direction
@@ -56,7 +57,7 @@ def rotate_video(video_path, direction):
     out.release()
 
     # Replace the original video with the rotated video by renaming the temp file
-    os.replace(temp_output, video_path)
+    shutil.move(temp_output, video_path)
     print(f"The video {video_path} has been rotated {direction}.")
 
 # Display the first frame of the video and then rotate the video based on user input
