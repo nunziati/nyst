@@ -18,12 +18,12 @@ from nyst.preprocessing import PreprocessingSignalsVideos
 class FirstPipeline:
     def __init__(self):
         self.region_selector = FirstRegionSelector()
-        self.eye_roi_detector = FirstEyeRoiDetector("D:/model_yolo/best_yolo11m.pt")
+        self.eye_roi_detector = FirstEyeRoiDetector("/repo/porri/nyst/yolo_models/best_yolo11m.pt")
         self.left_eye_roi_latch = FirstLatch()
         self.right_eye_roi_latch = FirstLatch()
         self.left_eye_center_latch = FirstLatch()
         self.right_eye_center_latch = FirstLatch()
-        self.eye_roi_segmenter = FirstEyeRoiSegmenter('D:/model.h5')
+        self.eye_roi_segmenter = FirstEyeRoiSegmenter('/repo/porri/model.h5')
         self.pupil_detector = ThresholdingPupilDetector(threshold=50)
         self.preprocess = PreprocessingSignalsVideos()
         self.frame_annotator = FirstFrameAnnotator()
@@ -110,15 +110,15 @@ class FirstPipeline:
             raise ValueError("I valori delle ROI devono essere numerici.")
 
         # Show the frames with the detected eye ROIs
-        #cv2.imshow('Left eye box',left_eye_frame)
-        #cv2.imshow('Right eye box',right_eye_frame)
+        # cv2.imshow('Left eye box',left_eye_frame)
+        # cv2.imshow('Right eye box',right_eye_frame)
        
         # Apply segmentation to the eye frames ROI
         left_eye_frame = self.eye_roi_segmenter.apply(left_eye_frame)
         right_eye_frame = self.eye_roi_segmenter.apply(right_eye_frame)
         # Show the segmented eye of the frames
-        #cv2.imshow('Left eye segmented',left_eye_frame)
-        #cv2.imshow('Right eye segmented',right_eye_frame)
+        # cv2.imshow('Left eye segmented',left_eye_frame)
+        # cv2.imshow('Right eye segmented',right_eye_frame)
 
         # Detect the relative position of the pupil in each eye frame
         left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame,count)
@@ -324,7 +324,7 @@ class FirstPipeline:
                         output_dict = self.run(video_path, output_path, idx)
 
                         # Salva i risultati del PupilDetector in un file
-                        self.pupil_detector.save_threshold_counts("D:/nyst_labelled_videos/threshold_counts.txt", video)
+                        self.pupil_detector.save_threshold_counts("/repo/porri/nyst_labelled_videos/threshold_counts.txt", video)
                         print("Saved threshold counts to threshold_counts.txt.")
 
                         # Create a unique path for the output video name

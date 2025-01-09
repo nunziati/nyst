@@ -2,7 +2,7 @@ import os
 import shutil
 
 # List of video file extensions to be considered
-video_extensions = ['.mp4', '.mkv']
+video_extensions = ['.mp4', '.mkv', '.jpg', '.png']
 
 # Function to flatten videos stored in a directory hierarchy to a single directory
 def flattenVideoDirectories(input_dir, output_dir):
@@ -39,3 +39,9 @@ def flattenVideoDirectories(input_dir, output_dir):
             # Copy the video file to the output directory with a new name
             shutil.copy(video_path, os.path.join(output_dir, f"{subfolder}_{video}"))
 
+if __name__ == "__main__": 
+
+    input_dir = "/repo/porri/Eyes Segmentation Dataset/Images"
+    output_dir = "/repo/porri/Eyes Segmentation Dataset/Images_f"
+
+    flattenVideoDirectories(input_dir, output_dir)

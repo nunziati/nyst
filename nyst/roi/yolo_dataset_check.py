@@ -30,9 +30,9 @@ def find_inconsistencies(images_folder, labels_folder, output_file):
     print(f"Inconsistencies saved to {output_file}")
 
 # Usa le cartelle corrette qui
-images_folder = "C:/Users/andre/Downloads/dataset/train/images"
-labels_folder = "C:/Users/andre/Downloads/dataset/train/labels"
-output_file = "C:/Users/andre/Downloads/inconsistencies.txt"
+images_folder = "/repo/porri/nyst/nyst/roi/dataset_yolo/train/images"
+labels_folder = "/repo/porri/nyst/nyst/roi/dataset_yolo/train/labels"
+output_file = "/repo/porri/nyst/nyst/roi/inconsistencies.txt"
 
 
 if __name__ == "__main__":
