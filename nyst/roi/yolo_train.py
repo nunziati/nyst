@@ -33,10 +33,10 @@ def train(exp_config):
         print("W&B Config:", config)
 
         # Set the training device
-        device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         # Initialize the YOLO model
-        model = YOLO("yolov8m.pt")
+        model = YOLO("yolo11m.pt")
 
         # Add the W&B callback to log training metrics
         add_wandb_callback(model)  # Passa il modello direttamente a add_wandb_callback()
@@ -81,10 +81,11 @@ if __name__ == '__main__':
     # Access the specific Roboflow project and download the dataset in YOLO forma
     try:
         # Takes the dataset and downloads
-        project = rf.project("andreap/eyes3.0-ascvn")
-        dataset = project.version(2).download("yolov8", location="/tmp/roboflow/eye_data/")
+       # project = rf.project("andreap/eyes3.0-ascvn")
+       # dataset = project.version(2).download("yolov8", location="/tmp/roboflow/eye_data/")
         # Set the path to the dataset configuration file (data.yaml)
-        data_yaml = dataset.location + "/data.yaml"
+       # data_yaml = dataset.location + "/data.yaml"
+        data_yaml = "/repo/porri/nyst/nyst/roi/yolo_dataset/data.yaml"
     except RuntimeError as e:
         print("Error downloading dataset:", e)
         exit(1)
@@ -93,7 +94,7 @@ if __name__ == '__main__':
     wandb.login()
 
     # Load the configuration from a YAML file
-    with open('config_wb.yaml') as file:
+    with open('/repo/porri/nyst/nyst/roi/config_wb.yaml') as file:
         sweep_config = yaml.safe_load(file)
 
     # Access the parameters section of the sweep configuration

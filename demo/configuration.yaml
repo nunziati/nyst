@@ -6,11 +6,11 @@
 
 # PATHS
 input_folder_lab: 
-    'D:/nyst_video_cartelle'
+    '/repo/porri/nyst_video_cartelle'
 flattened_folder_lab: 
-    'D:/nyst_flatten_video'  
+    '/repo/porri/nyst_flatten_video'  
 output_folder_lab:
-    'D:/nyst_labelled_videos_prova'
+    '/repo/porri/nyst_labelled_videos'
 
 # VALUES CONFIGURATION
 clip_duration:
@@ -25,9 +25,9 @@ overlapping:
                                                   ############################################################
 # PATHS
 input_folder_extr:
-    'D:/nyst_labelled_videos/videos'
+    '/repo/porri/nyst_labelled_videos/videos'
 output_folder_extr:
-    'D:/nyst_labelled_videos'
+    '/repo/porri/nyst_labelled_videos'
   
 
                                                   ############################################################

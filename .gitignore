@@ -178,3 +178,6 @@ data/
 /Eyes3.0-2
 /nyst/roi/Nystagmus_detection
 /nyst/roi/yolo-eyes
+/nyst/roi/Accurate_Eyes_Detection_Dataset.v1i.yolov11.zip
+nyst/roi/yolo_dataset
+/nyst/roi/Accurate_Eyes_Detection_Dataset.v1i.yolov11

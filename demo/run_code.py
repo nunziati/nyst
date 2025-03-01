@@ -11,7 +11,7 @@ from demo.yaml_function import load_hyperparams, pathConfiguratorYaml
 def main(option):
         
     # Execute the LABELLING PHASE
-    if option == 'Video labelling':
+    if option == '1':
 
         from script.flatten_video_directories import flattenVideoDirectories
         from script.label_videos import labelling_videos
@@ -22,7 +22,7 @@ def main(option):
             input_folder_lab, flattened_folder_lab, output_folder_lab, clip_duration, overlapping, _, _, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml)
             
             ### FLATTENING STEP ###
-            #flattenVideoDirectories(input_folder_lab, flattened_folder_lab)
+            flattenVideoDirectories(input_folder_lab, flattened_folder_lab)
 
             user_input = input('\nFlatten Step completed. Press any key to continue, otherwise press q to terminate the program: ')
             # Terminate the program
@@ -54,7 +54,7 @@ def main(option):
             exit()
         
     # Execute the FEATURE EXTRACTION PHASE
-    elif option == 'Feature Exctraction':
+    elif option == '2':
 
         from nyst.pipeline.first_pipeline import FirstPipeline
 
@@ -73,7 +73,7 @@ def main(option):
             exit()
 
     # Execute the PREPROCESSING AND AUGMENTATION PHASE
-    elif option == 'Preprocessing':
+    elif option == '3':
         
         import pandas as pd
         from nyst.dataset.preprocess_function import preprocess_interpolation, cubic_interpolation  
@@ -145,7 +145,7 @@ def main(option):
             print(f"Merged data saved to {new_csv_file}")
     
     # Execute the TRAINING AND VALIDATION PHASE
-    elif option == 'Training Phase':
+    elif option == '4':
 
         import wandb
         import yaml
@@ -169,7 +169,7 @@ def main(option):
             exit()    
     
     # Execute the INFERENCE PHASE
-    elif option == 'Inference Phase':
+    elif option == '5':
         # Code block for option 3
         # Insert code for option 3 here
         pass

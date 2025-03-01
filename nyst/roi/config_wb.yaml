@@ -5,11 +5,11 @@ method: grid  # Can be 'random' or 'grid'
 
 parameters:
   batch_size:
-    values: [8, 16, 32]
+    values: [32]
   lr:
-    values: [0.001, 0.0001, 0.00001]
+    values: [0.0001, 0.00001]
   epochs:
-    values: [100, 200, 500]
+    values: [500]
   optimizer:
     values: ['Adam', 'SGD']
 

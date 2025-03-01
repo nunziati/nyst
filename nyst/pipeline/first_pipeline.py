@@ -8,7 +8,7 @@ import traceback
 # Add the 'code' directory to the PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from nyst.roi import FirstRegionSelector, FirstEyeRoiDetector, FirstEyeRoiSegmenter
+from nyst.roi import FirstRegionSelector, FirstEyeRoiDetector, FirstEyeRoiSegmenter, SegmenterThreshold
 from nyst.utils import FirstLatch
 from nyst.pupil import ThresholdingPupilDetector
 from nyst.analysis import FirstSpeedExtractor
@@ -24,6 +24,7 @@ class FirstPipeline:
         self.left_eye_center_latch = FirstLatch()
         self.right_eye_center_latch = FirstLatch()
         self.eye_roi_segmenter = FirstEyeRoiSegmenter('/repo/porri/model.h5')
+        self.eye_segmenter_threshold = SegmenterThreshold('/repo/porri/eyes_seg_threshold.h5')
         self.pupil_detector = ThresholdingPupilDetector(threshold=50)
         self.preprocess = PreprocessingSignalsVideos()
         self.frame_annotator = FirstFrameAnnotator()
@@ -82,8 +83,8 @@ class FirstPipeline:
             raise RuntimeError(f'Unable to find a face in the last {threshold} frames')
         
         # Apply ROI to the selected frame and store the results
-        left_eye_frame = self.region_selector.apply(frame, left_eye_roi)
-        right_eye_frame = self.region_selector.apply(frame, right_eye_roi)
+        left_eye_frame_roi = self.region_selector.apply(frame, left_eye_roi)
+        right_eye_frame_roi = self.region_selector.apply(frame, right_eye_roi)
 
         '''# CONTROL #
         print('================================ CONTROL STEP 2 =================================')
@@ -114,15 +115,22 @@ class FirstPipeline:
         # cv2.imshow('Right eye box',right_eye_frame)
        
         # Apply segmentation to the eye frames ROI
-        left_eye_frame = self.eye_roi_segmenter.apply(left_eye_frame)
-        right_eye_frame = self.eye_roi_segmenter.apply(right_eye_frame)
+        left_eye_frame = self.eye_roi_segmenter.apply(left_eye_frame_roi)
+        right_eye_frame = self.eye_roi_segmenter.apply(right_eye_frame_roi)
         # Show the segmented eye of the frames
         # cv2.imshow('Left eye segmented',left_eye_frame)
         # cv2.imshow('Right eye segmented',right_eye_frame)
 
+        # Apply segmentation for threshold to the eye frames ROI
+        left_relative_threshold_frame,_ = self.eye_segmenter_threshold.apply(left_eye_frame_roi)
+        right_relative_threshold_frame,_ = self.eye_segmenter_threshold.apply(right_eye_frame_roi)
+        # Annotate threshold segmented frame
+        # self.frame_annotator.apply_segmentation(left_eye_frame_roi, left_relative_threshold_frame, "Left")
+        # self.frame_annotator.apply_segmentation(right_eye_frame_roi, right_relative_threshold_frame, "Right")
+
         # Detect the relative position of the pupil in each eye frame
-        left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame,count)
-        right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame,count)
+        left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame, left_relative_threshold_frame,count, self.eye_segmenter_threshold.label,"l")
+        right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame, right_relative_threshold_frame,count, self.eye_segmenter_threshold.label,"r")
         
         # Convert the relative pupil positions to absolute positions based on the ROI 
         if left_pupil_relative_position[0] is not None and left_pupil_relative_position[1] is not None:
@@ -324,8 +332,7 @@ class FirstPipeline:
                         output_dict = self.run(video_path, output_path, idx)
 
                         # Salva i risultati del PupilDetector in un file
-                        self.pupil_detector.save_threshold_counts("/repo/porri/nyst_labelled_videos/threshold_counts.txt", video)
-                        print("Saved threshold counts to threshold_counts.txt.")
+                        self.pupil_detector.save_threshold_counts("/repo/porri/nyst_labelled_videos/threshold_counts.csv", video)
 
                         # Create a unique path for the output video name
                         output_video_relative_path = os.path.normpath(os.path.join("videos", video)) # Create the relative path for the output video
