@@ -3,10 +3,10 @@ import keras
 import numpy as np
 import tensorflow as tf
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Specifica la seconda GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Specifies the second GPU
 
 from nyst.seg_eyes.deeplab_mdl_def import DynamicUpsample
-from nyst.seg_eyes.utils import plot_predictions, infer, decode_segmentation_masks
+from nyst.seg_eyes.utils import plot_predictions, infer
 
 # Class that defines a method to calculate the ROI boxes of each eye separately.
 class FirstEyeRoiSegmenter:
@@ -57,8 +57,6 @@ class FirstEyeRoiSegmenter:
         image_tensor = np.array(eye_frame)
         prediction_mask = infer(self.model, image_tensor)
         
-        # To do: Eliminazione blob piccoli, verifichiamo area occhio del detetcted box
-
         # Create a masked version of the eye frame
         eye_frame_masked = eye_frame.copy()
         eye_frame_masked[prediction_mask == 0] = np.array( [255,255,255])

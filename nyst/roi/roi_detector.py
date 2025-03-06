@@ -50,7 +50,7 @@ class FirstEyeRoiDetector:
             for det in detections:
                 # Assuming 'eye' is a specific class
                 class_id = int(det[5])  # The class ID (usually the last element in the detection array)
-                if class_id == 0:  # Replace 0 with the class ID for eyes
+                if class_id == 0:  # Assuming 'eye' is class 0
                     eye_boxes.append(det[:4])  # Append the bounding box (x1, y1, x2, y2)
             
             # Control all the boxes and adjest the boxes value
@@ -98,7 +98,7 @@ class FirstEyeRoiDetector:
             print(f"An error occurred: {e}")
             traceback.print_exc()
             
-
+'''
 
 if __name__ == "__main__":
 
@@ -157,3 +157,4 @@ if __name__ == "__main__":
     out.release()
     cv2.destroyAllWindows()
 
+'''

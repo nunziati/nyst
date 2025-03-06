@@ -10,22 +10,22 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from nyst.roi import FirstRegionSelector, FirstEyeRoiDetector, FirstEyeRoiSegmenter, SegmenterThreshold
 from nyst.utils import FirstLatch
-from nyst.pupil import ThresholdingPupilDetector
+from nyst.pupil import CenterPupilIrisRegionDetector
 from nyst.analysis import FirstSpeedExtractor
 from nyst.visualization import FirstFrameAnnotator
 from nyst.preprocessing import PreprocessingSignalsVideos
 
 class FirstPipeline:
     def __init__(self):
-        self.region_selector = FirstRegionSelector()
         self.eye_roi_detector = FirstEyeRoiDetector("/repo/porri/nyst/yolo_models/best_yolo11m.pt")
         self.left_eye_roi_latch = FirstLatch()
         self.right_eye_roi_latch = FirstLatch()
         self.left_eye_center_latch = FirstLatch()
         self.right_eye_center_latch = FirstLatch()
+        self.region_selector = FirstRegionSelector()
         self.eye_roi_segmenter = FirstEyeRoiSegmenter('/repo/porri/model.h5')
         self.eye_segmenter_threshold = SegmenterThreshold('/repo/porri/eyes_seg_threshold.h5')
-        self.pupil_detector = ThresholdingPupilDetector(threshold=50)
+        self.pupil_detector = CenterPupilIrisRegionDetector(threshold=50)
         self.preprocess = PreprocessingSignalsVideos()
         self.frame_annotator = FirstFrameAnnotator()
         self.speed_extractor = FirstSpeedExtractor()
@@ -47,11 +47,6 @@ class FirstPipeline:
         - count_from_lastRoiupd: The updated counter indicating the number of frames since the last ROI update.
         '''
 
-        '''# CONTROL 1 #
-        print('================================ CONTROL STEP 1 =================================')
-        print(f"Frame type: {type(frame)}, Frame shape: {getattr(frame, 'shape', 'N/A')}")
-        print(f"count_from_lastRoiupd: {count_from_lastRoiupd}, threshold: {threshold}, update_roi: {update_roi}")'''
-       
         # Update the eye ROI if specified and if the count is less than a threshold
         if update_roi and count_from_lastRoiupd < threshold:
             try:
@@ -82,41 +77,25 @@ class FirstPipeline:
         else:
             raise RuntimeError(f'Unable to find a face in the last {threshold} frames')
         
-        # Apply ROI to the selected frame and store the results
-        left_eye_frame_roi = self.region_selector.apply(frame, left_eye_roi)
-        right_eye_frame_roi = self.region_selector.apply(frame, right_eye_roi)
-
-        '''# CONTROL #
-        print('================================ CONTROL STEP 2 =================================')
-        # Frame size control
-        if frame is not None and len(frame.shape) == 3:
-            rows, cols, _ = frame.shape
-            print(f"Frame dimensions: {rows}x{cols}")
-        else:
-            raise ValueError("Frame non valido o privo di dimensioni.")
-        
-        # Verification of region selection result
-        if left_eye_frame is None or right_eye_frame is None:
-            raise ValueError("La selezione della regione ha restituito un frame nullo.")
-
-        print(f"Left eye frame shape: {left_eye_frame.shape}")
-        print(f"Right eye frame shape: {right_eye_frame.shape}")'''
-        
         # Checking validity of ROIs
         if not all(isinstance(roi, np.ndarray) for roi in [left_eye_roi, right_eye_roi]):
-            raise ValueError("Le ROI devono essere array NumPy.")
+            raise ValueError("ROIs must be NumPy arrays.")
 
         if not all(np.issubdtype(roi.dtype, np.number) for roi in [left_eye_roi, right_eye_roi]):
             print(f"ROI values - Left: {left_eye_roi}, Right: {right_eye_roi}")
-            raise ValueError("I valori delle ROI devono essere numerici.")
+            raise ValueError("The values of ROIs must be numerical.")
+       
+        # Apply ROI to the selected frame and store the results
+        left_eye_frame_roi = self.region_selector.apply(frame, left_eye_roi)
+        right_eye_frame_roi = self.region_selector.apply(frame, right_eye_roi)      
 
         # Show the frames with the detected eye ROIs
         # cv2.imshow('Left eye box',left_eye_frame)
         # cv2.imshow('Right eye box',right_eye_frame)
        
         # Apply segmentation to the eye frames ROI
-        left_eye_frame = self.eye_roi_segmenter.apply(left_eye_frame_roi)
-        right_eye_frame = self.eye_roi_segmenter.apply(right_eye_frame_roi)
+        #left_eye_frame = self.eye_roi_segmenter.apply(left_eye_frame_roi)
+        #right_eye_frame = self.eye_roi_segmenter.apply(right_eye_frame_roi)
         # Show the segmented eye of the frames
         # cv2.imshow('Left eye segmented',left_eye_frame)
         # cv2.imshow('Right eye segmented',right_eye_frame)
@@ -128,9 +107,9 @@ class FirstPipeline:
         # self.frame_annotator.apply_segmentation(left_eye_frame_roi, left_relative_threshold_frame, "Left")
         # self.frame_annotator.apply_segmentation(right_eye_frame_roi, right_relative_threshold_frame, "Right")
 
-        # Detect the relative position of the pupil in each eye frame
-        left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame, left_relative_threshold_frame,count, self.eye_segmenter_threshold.label,"l")
-        right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame, right_relative_threshold_frame,count, self.eye_segmenter_threshold.label,"r")
+        # Detect the relative position of the center of Pupil+Iris in each eye frame
+        left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame_roi, left_relative_threshold_frame, count, self.eye_segmenter_threshold.label,"l")
+        right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame_roi, right_relative_threshold_frame, count, self.eye_segmenter_threshold.label,"r")
         
         # Convert the relative pupil positions to absolute positions based on the ROI 
         if left_pupil_relative_position[0] is not None and left_pupil_relative_position[1] is not None:
