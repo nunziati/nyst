@@ -23,12 +23,12 @@ class FirstPipeline:
         self.left_eye_center_latch = FirstLatch()
         self.right_eye_center_latch = FirstLatch()
         self.region_selector = FirstRegionSelector()
-        self.eye_roi_segmenter = FirstEyeRoiSegmenter('/repo/porri/model.h5')
+        #self.eye_roi_segmenter = FirstEyeRoiSegmenter('/repo/porri/model.h5')
         self.eye_segmenter_threshold = SegmenterThreshold('/repo/porri/eyes_seg_threshold.h5')
         self.pupil_detector = CenterPupilIrisRegionDetector(threshold=50)
         self.preprocess = PreprocessingSignalsVideos()
         self.frame_annotator = FirstFrameAnnotator()
-        self.speed_extractor = FirstSpeedExtractor()
+        self.speed_extractor = FirstSpeedExtractor(time_resolutions=[5])
         
     def apply(self, frame, count_from_lastRoiupd:int, count:int, threshold:int=30, update_roi:bool=True) -> tuple:
         '''
@@ -309,9 +309,6 @@ class FirstPipeline:
                         print(f'\n\nFeature extraction of the video: {video} ----- Video: {idx}')
                         # Run the processing on the video
                         output_dict = self.run(video_path, output_path, idx)
-
-                        # Salva i risultati del PupilDetector in un file
-                        self.pupil_detector.save_threshold_counts("/repo/porri/nyst_labelled_videos/threshold_counts.csv", video)
 
                         # Create a unique path for the output video name
                         output_video_relative_path = os.path.normpath(os.path.join("videos", video)) # Create the relative path for the output video

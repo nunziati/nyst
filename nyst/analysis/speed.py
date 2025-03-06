@@ -1,9 +1,9 @@
 import numpy as np
 
 class FirstSpeedExtractor:
-    def __init__(self):
+    def __init__(self, time_resolutions=[3]):
         # These represent the number of frames over which the speed will be calculate
-        self.time_resolutions = [3, 5, 7, 9] # Frame window resolution
+        self.time_resolutions = time_resolutions # Frame window resolution
 
     def apply(self, positions:np.array, fps:int=None) -> np.array:
         '''

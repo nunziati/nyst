@@ -98,13 +98,13 @@ def main(option):
 
 
         # Applies the preprocessing function if provided
-        if len(preprocess)!=0 and (augmentation)!=0:
+        if len(preprocess)!=0 and len(augmentation)!=0:
                       
             # PREPROCESSING STEP
             for prep in preprocess:
                 # Preprocess signals
                 if prep == 'cubic_interpolation':
-                    data = cubic_interpolation(data)
+                    data = cubic_interpolation(data, 150)
                 elif prep == 'preprocess_interpolation':
                     data = preprocess_interpolation(data)
                 else:
@@ -124,7 +124,7 @@ def main(option):
                     raise ValueError('Invalid augmentation choise')
                 print(f'   \n\t ---> Augmentation {aug} step COMPLETED\n')
 
-        elif len(preprocess)!=0 and (augmentation)==0:
+        elif len(preprocess)!=0 and len(augmentation)==0:
             # PREPROCESSING STEP
             for prep in preprocess:
                 # Preprocess signals
