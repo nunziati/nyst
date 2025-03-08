@@ -118,8 +118,6 @@ class SegmenterThreshold:
         - A dictionary masked version of the original frame where the eye region is segmented.
         """
 
-        # Masks frame list 
-        masks_dict = {} 
 
         # Resize the frame to the input size of the model
         original_size = (frame.shape[1], frame.shape[0])
@@ -138,18 +136,17 @@ class SegmenterThreshold:
         # Apply the color map to the mask
         for class_id, color in self.COLORMAP.items():
             class_mask = (prediction_mask == class_id)
-            eye_frame_masked[class_mask] = color
-            # Resize the masked frame back to the original size
-            eye_frame_relative_threshold_masked = cv2.resize(eye_frame_masked, original_size, interpolation=cv2.INTER_NEAREST)
-            masks_dict[class_id] = eye_frame_relative_threshold_masked
+            eye_frame_masked[class_mask] = np.array(color)
 
-        prediction_mask = cv2.resize(prediction_mask, original_size, interpolation=cv2.INTER_NEAREST)
+        # Resize the masked frame back to the original size
+        color_mask = cv2.resize(eye_frame_masked, original_size, interpolation=cv2.INTER_NEAREST)
+    
+        
+        # Resize the prediction mask back to the original size
+        prediction_mask = cv2.resize(prediction_mask, original_size, interpolation=cv2.INTER_NEAREST)  
 
-        # Optional: Visualize the segmented eye
-        if print_eye:
-            self._plot_segmented_frame(frame, masks_dict)        
-
-        return prediction_mask, masks_dict
+        return prediction_mask, color_mask
+    
     
     def apply_segmentation(self, frame, mask, pos, alpha=0.3):
         """

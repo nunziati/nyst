@@ -66,6 +66,9 @@ class CenterPupilIrisRegionDetector:
             if major_axis > 0 and minor_axis > 0:
                 # Draw the ellipse on the original frame
                 cv2.ellipse(frame_with_contours, ellipse, (255, 0, 0), 2)
+                cv2.ellipse(frame, ellipse, (255, 0, 0), 2)
+                cv2.imwrite('/repo/porri/nyst_labelled_videos/foto/left_ellisse.png',frame)
+                
                 
                 # The center of the ellipse is the center of the pupil/iris
                 center = np.array([int(center[0]), int(center[1])], dtype=np.int32)

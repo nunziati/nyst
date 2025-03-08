@@ -6,8 +6,8 @@ from ultralytics import YOLO
 model = YOLO('D:/model_yolo/best_yolo11m.pt')  # Sostituisci con il percorso corretto al tuo file .pt
 
 # Specifica la cartella dei video di input e quella di output
-input_folder = "D:/prova"
-output_folder = "D:/prova_annoted"  # Assicurati che questa cartella esista
+input_folder = "D:/nyst_flatten_video"
+output_folder = "D:/yolo_annoted"  # Assicurati che questa cartella esista
 
 # Crea la cartella di output se non esiste
 os.makedirs(output_folder, exist_ok=True)
@@ -28,7 +28,7 @@ for video_file in os.listdir(input_folder):
         for result in results:
             # Usa il metodo plot() per ottenere l'immagine con le annotazioni
             img = result.plot()  # Restituisce l'immagine con le predizioni sovrapposte
-
+            cv2.imwrite('/repo/porri/nyst_labelled_videos/foto/yolo.png', img)
             # Verifica se l'immagine è già in formato BGR
             if img.shape[2] == 3:  # Assicurati che l'immagine abbia 3 canali
                 img_bgr = img  # Utilizza direttamente l'immagine

@@ -98,7 +98,7 @@ class FirstEyeRoiDetector:
             print(f"An error occurred: {e}")
             traceback.print_exc()
             
-'''
+
 
 if __name__ == "__main__":
 
@@ -157,4 +157,3 @@ if __name__ == "__main__":
     out.release()
     cv2.destroyAllWindows()
 
-'''
