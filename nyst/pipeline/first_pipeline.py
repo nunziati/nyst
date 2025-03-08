@@ -89,9 +89,7 @@ class FirstPipeline:
         right_eye_frame_roi = self.region_selector.apply(frame, right_eye_roi)      
 
         # Show the frames with the detected eye ROIs
-        cv2.imwrite('/repo/porri/nyst_labelled_videos/foto/left_roi.png',left_eye_frame_roi)
-        input("yolo e roi")
-        #cv2.imshow('Right eye box',left_eye_frame_roi,)
+        #cv2.imshow('Right eye box',left_eye_frame_roi)
 
 
         # Apply segmentation to the eye frames ROI
@@ -100,14 +98,10 @@ class FirstPipeline:
         # Annotate threshold segmented frame
         # self.frame_annotator.apply_segmentation(left_eye_frame_roi, left_relative_threshold_frame, "Left")
         # self.frame_annotator.apply_segmentation(right_eye_frame_roi, right_relative_threshold_frame, "Right")
-        masked_frame = cv2.addWeighted(frame, 1 - 0.3, left_color_mask, 0.3, 0)
-        cv2.imwrite('/repo/porri/nyst_labelled_videos/foto/left_seg.png',masked_frame)
-        input("segmentation")
 
 
         # Detect the relative position of the center of Pupil+Iris in each eye frame
         left_pupil_relative_position = self.pupil_detector.apply(left_eye_frame_roi, left_relative_threshold_frame, count, self.eye_segmenter_threshold.label,"l")
-        input("ellisse")
         right_pupil_relative_position = self.pupil_detector.apply(right_eye_frame_roi, right_relative_threshold_frame, count, self.eye_segmenter_threshold.label,"r")
         
         # Convert the relative pupil positions to absolute positions based on the ROI 
@@ -187,10 +181,7 @@ class FirstPipeline:
         
         # Annotate the frame with the pupil positions
         annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
-        cv2.imwrite('/repo/porri/nyst_labelled_videos/foto/center.png',annotated_frame)
-        input("center")
-
-
+        
 
         # Display the annotated frame
         #cv2.imshow("frame", annotated_frame)

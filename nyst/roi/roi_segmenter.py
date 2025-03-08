@@ -134,13 +134,13 @@ class SegmenterThreshold:
         eye_frame_masked = np.zeros_like(eye_frame)
 
         # Apply the color map to the mask
-        for class_id, color in self.COLORMAP.items():
+        for class_name, color in self.COLORMAP.items():
+            class_id = self.label[class_name]  # Assuming class IDs are consecutive integers
             class_mask = (prediction_mask == class_id)
             eye_frame_masked[class_mask] = np.array(color)
 
         # Resize the masked frame back to the original size
         color_mask = cv2.resize(eye_frame_masked, original_size, interpolation=cv2.INTER_NEAREST)
-    
         
         # Resize the prediction mask back to the original size
         prediction_mask = cv2.resize(prediction_mask, original_size, interpolation=cv2.INTER_NEAREST)  
