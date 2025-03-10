@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from nyst.dataset.signal_augmentation import *
 
 # Preprocess function using spline interpolation
-def preprocess_interpolation(data, frames=300, order=2):
+def preprocess_interpolation(data, frames=150, order=2):
     '''
     Preprocess function that checks if each signal has the expected number of frames.
     If not, it applies spline interpolation (of the given order) to upsample or downsample

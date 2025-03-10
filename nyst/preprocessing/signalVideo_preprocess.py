@@ -195,18 +195,6 @@ class PreprocessingFramesVideos:
 
 
 
-    def remove_reflections(gray_frame, background_subtractor):
-        # Applica la sottrazione dello sfondo
-        fgmask = background_subtractor.apply(gray_frame)
-
-        # Opzionale: Applica alcune operazioni morfologiche per pulire la maschera
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel)
-        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel)
-
-        return fgmask
-
-
     # Apply all preprocessing steps to a frame
     def preprocess_frame(self, frame):
         '''
@@ -244,19 +232,10 @@ class PreprocessingFramesVideos:
 
         # Apply super resolution (commented out)
         # frame = self.apply_super_resolution(frame)
-        
-        # Remove reflections
-        background_subtractor = cv2.createBackgroundSubtractorMOG2()
-        frame_no_reflections = self.remove_reflections(frame_edge_enhanced,background_subtractor)
-        cv2.imshow('After Removing Reflections', frame_no_reflections)
-        cv2.waitKey(1)
-
-        # Convert the image back to BGR
-        frame_bgr = cv2.cvtColor(frame_no_reflections, cv2.COLOR_GRAY2BGR)
 
         cv2.destroyAllWindows()  # Close all windows after the process
 
-        return frame_bgr
+        return frame_edge_enhanced
 
     
 
