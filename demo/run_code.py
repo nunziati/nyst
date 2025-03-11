@@ -81,68 +81,32 @@ def main(option):
         from nyst.dataset.utils_function import save_csv
 
         ### YAML ###
-        _, _, _, _, _, _, _, csv_input_file, csv_label_file, new_csv_file, preprocess, augmentation, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+        _, _, _, _, _, _, _, csv_input_file, _, new_csv_file, preprocess, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
 
         print('Loading a Custom Dataset...')
         
         # Load the CSV file
         input_data = pd.read_csv(csv_input_file)
-        label_data = pd.read_csv(csv_label_file)
         
         # Replace backslash with slash in both dataframes
         input_data['video'] = input_data['video'].str.replace('\\', '/')
-        label_data['video'] = label_data['video'].str.replace('\\', '/')
+   
 
-        # Perform the join on the 'video' column
-        data = pd.merge(input_data, label_data, on='video', how='left')
-
-
-        # Applies the preprocessing function if provided
-        if len(preprocess)!=0 and len(augmentation)!=0:
-                      
-            # PREPROCESSING STEP
-            for prep in preprocess:
-                # Preprocess signals
-                if prep == 'cubic_interpolation':
-                    data = cubic_interpolation(data, 150)
-                elif prep == 'preprocess_interpolation':
-                    data = preprocess_interpolation(data)
-                else:
-                    raise ValueError('Invalid preprocessing choise')
-                print(f'\n\t ---> Preprocessing {prep} step COMPLETED\n')
-            
-            # Save the merged CSV
-            save_csv(data, new_csv_file)
-            print(f"Merged data saved to {new_csv_file}")
-
-            # AUGMENTATION STEP
-            for aug in augmentation:
-                # Preprocess signals
-                if aug == 'augment_data':
-                    data = augment_data(data, new_csv_file)
-                else:
-                    raise ValueError('Invalid augmentation choise')
-                print(f'   \n\t ---> Augmentation {aug} step COMPLETED\n')
-
-        elif len(preprocess)!=0 and len(augmentation)==0:
-            # PREPROCESSING STEP
-            for prep in preprocess:
-                # Preprocess signals
-                if prep == 'cubic_interpolation':
-                    data = cubic_interpolation(data)
-                elif prep == 'preprocess_interpolation':
-                    data = preprocess_interpolation(data)
-                else:
-                    raise ValueError('Invalid preprocessing choise')
-                print(f'\t ---> Preprocessing {prep} step COMPLETED\n')
-            
-            # Save the merged CSV
-            save_csv(data, new_csv_file)
-            print(f"Merged data saved to {new_csv_file}")
-        else:
-            # Save the merged CSV
-            save_csv(data, new_csv_file)
-            print(f"Merged data saved to {new_csv_file}")
+        # PREPROCESSING STEP
+        for prep in preprocess:
+            # Preprocess signals
+            if prep == 'cubic_interpolation':
+                data = cubic_interpolation(input_data)
+            elif prep == 'preprocess_interpolation':
+                data = preprocess_interpolation(input_data)
+            else:
+                raise ValueError('Invalid preprocessing choise')
+            print(f'\t ---> Preprocessing {prep} step COMPLETED\n')
+        
+        # Save the merged CSV
+        save_csv(data, new_csv_file)
+        print(f"Merged data saved to {new_csv_file}")
+       
     
     # Execute the TRAINING AND VALIDATION PHASE
     elif option == '4':

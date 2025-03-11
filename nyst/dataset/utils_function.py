@@ -139,7 +139,6 @@ def save_csv(data, csv_file):
                 'left_speed Y': left_speed_y.tolist(),
                 'right_speed X': right_speed_x.tolist(),
                 'right_speed Y': right_speed_y.tolist(),
-                'label': row['label']
             }
 
             # Append the processed row to the list 
