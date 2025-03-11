@@ -239,13 +239,13 @@ def train(config=None):
         None
     """
     # Load
-    _, _, _, _, _, _, _, csv_input_file, csv_label_file, _, _, save_path_wb, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+    _, _, _, _, _, _, _, _, csv_label_file, csv_input_file_int, _, save_path_wb, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
 
     # Initialize W&B with the given configuration
     with wandb.init(config=config):
         config = wandb.config  # Access the W&B configuration settings
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        dataset = CustomDataset(csv_input_file, csv_label_file)  # Path to your dataset
+        dataset = CustomDataset(csv_input_file_int, csv_label_file)  # Path to your dataset
 
         # Create the training and validation datasets and convert numpy arrays to PyTorch tensors
         train_input_tensor = torch.tensor(dataset.train_signals, dtype=torch.float32)
