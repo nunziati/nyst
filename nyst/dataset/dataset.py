@@ -16,7 +16,7 @@ from nyst.dataset.preprocess_function import *
 
 
 class CustomDataset(Dataset):
-    def __init__(self, new_csv_file='D:/nyst_labelled_videos/merged_data.csv'):
+    def __init__(self, feature_file, label_file):
         
         # Load the CSV file
         self.data = pd.read_csv(new_csv_file)
@@ -35,7 +35,7 @@ class CustomDataset(Dataset):
         print('\n\t ---> Data normalization step COMPLETED\n')
 
         
-
+    
     # Return the number of samples in the dataset
     def __len__(self):
         return len(self.samples)

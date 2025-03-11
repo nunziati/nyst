@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 # Function to filter data based on patients
 def filter_data_by_patients(data, selected_patients):
@@ -34,7 +35,7 @@ def shuffle_data(data):
     return data
 
 # Function to split the data into training and test sets
-def split_data(file_path, perc_test=0.1):
+def split_data(root, file_path, perc_test=0.2):
     '''
     Splits the input dataset into training and test sets while ensuring that each patient’s data is entirely in one set.
 
@@ -50,10 +51,10 @@ def split_data(file_path, perc_test=0.1):
     - None: The function saves the training and test sets to 'train_label.csv' and 'test_label.csv' respectively.
     '''
     # Load the data from the CSV file
-    data = pd.read_csv(file_path)
+    data = pd.read_csv(root / file_path)
     
     # Extract unique patients
-    data['patient_id'] = data['video'].str.split('_').str[0][-3:]
+    data['patient_id'] = data['video'].str.split('_').str[0].str.split('\\').str[1]
     unique_patients = data['patient_id'].unique()
 
     # Shuffle the patients to ensure randomness
@@ -77,6 +78,9 @@ def split_data(file_path, perc_test=0.1):
     # The remaining patients are for training
     train_patients = [patient for patient in unique_patients if patient not in test_patients]
     
+    print(test_patients)
+    print(train_patients)
+
     # Filter the data into train and test sets based on the selected patients
     test_data = filter_data_by_patients(data, test_patients)
     train_data = filter_data_by_patients(data, train_patients)
@@ -86,8 +90,8 @@ def split_data(file_path, perc_test=0.1):
     test_data = shuffle_data(test_data)
     
     # Save the train and test sets to CSV files
-    train_data.to_csv('train_label.csv', index=False)
-    test_data.to_csv('test_label.csv', index=False)
+    train_data.to_csv(root / 'train_label.csv', index=False)
+    test_data.to_csv(root / 'test_label.csv', index=False)
     
     print_class_balance(train_data, "train")
     print_class_balance(test_data, "test")
@@ -95,4 +99,5 @@ def split_data(file_path, perc_test=0.1):
 # split_data('path_to_your_file.csv')
 
 if __name__ == "__main__":
-    split_data('.csv')
+    root = Path("/repo/porri/nyst_labelled_videos")
+    split_data(root, 'labels.csv')
