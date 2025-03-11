@@ -50,8 +50,8 @@ def split_data(root, perc_test=0.2):
     Returns:
     - None: The function saves the training and test sets to 'train_label.csv' and 'test_label.csv' respectively.
     '''
-    label_df = pd.read_csv(root/'labels.csv')
-    feature_df = pd.read_csv(root / "video_features.csv")
+    label_df = pd.read_csv(root / 'labels.csv')
+    feature_df = pd.read_csv(root / "video_features_interp.csv")
     
     # Change the path format in the "video" column of both df, (from windows to linux)
     label_df['video'] = label_df['video'].apply(lambda x: x.replace('\\', '/'))
@@ -103,9 +103,8 @@ def split_data(root, perc_test=0.2):
     
     print_class_balance(train_data, "train")
     print_class_balance(test_data, "test")
-# Example usage
-# split_data('path_to_your_file.csv')
+
 
 if __name__ == "__main__":
     root = Path("/repo/porri/nyst_labelled_videos")
-    split_data(root, 'labels.csv')
+    split_data(root)

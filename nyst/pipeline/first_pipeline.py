@@ -221,7 +221,9 @@ class FirstPipeline:
             annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
 
             # Display the annotated frame
-            #cv2.imshow("frame", annotated_frame)
+            # cv2.imshow("frame", annotated_frame)
+            # cv2.waitKey(0)
+       
 
             # Exit if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord('q'):
