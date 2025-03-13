@@ -1,5 +1,6 @@
 import sys
 import os
+import torch
 import torch.nn as nn
 
 # Add 'code' directory to PYTHONPATH
@@ -32,13 +33,18 @@ class NystClassifier(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self,x):# batch_size, 8, 150
+    def forward(self, x):# batch_size, 8, 150
         # Pass the input through the tuned CNN to extract features
         features = self.tunedCNN(x)
         # Pass the extracted features through the output network
         output = self.output_net(features)
 
         return output
+    
+    def load_weights(self, path):
+        # Load the weights for the tuned CNN and the output network
+        self.load_state_dict(torch.load(path))
+        self.eval()
     
     
     
