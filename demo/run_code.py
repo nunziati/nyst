@@ -96,7 +96,7 @@ def main(option):
         for prep in preprocess:
             # Preprocess signals
             if prep == 'cubic_interpolation':
-                data = cubic_interpolation(input_data,150)
+                data = cubic_interpolation(input_data)
             elif prep == 'preprocess_interpolation':
                 data = preprocess_interpolation(input_data)
             else:
@@ -113,7 +113,7 @@ def main(option):
 
         import wandb
         import yaml
-        from nyst.training.train_wb import train
+        from nyst.classifier.train_wb import run_training_process
 
         try:
             # Logs into the Weights and Biases (W&B) platform, ensuring the user is authenticated
@@ -127,7 +127,7 @@ def main(option):
             sweep_id = wandb.sweep(sweep_config, project="nyst_detection")
 
             # Launches the W&B agent to run the sweep
-            wandb.agent(sweep_id, train, count=100)
+            wandb.agent(sweep_id, run_training_process, count=100)
         except Exception as e:
             print(f"An error occurred during the Training and Validation phase: {e}")
             exit()    

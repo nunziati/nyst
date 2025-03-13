@@ -1,6 +1,6 @@
 import copy
 import wandb
-from tqdm import tqdm
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -10,14 +10,15 @@ from sklearn.model_selection import KFold
 import os
 from demo.yaml_function import load_hyperparams, pathConfiguratorYaml
 from nyst.classifier.classifier import NystClassifier
-from nyst.dataset.dataset import CustomDataset
+from nyst.dataset.dataset import NystDataset
+from sklearn.metrics import roc_auc_score
 
 # Set the desired GPU device and manage CUDA memory fragmentation
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Set desired GPU device
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'  # Handle memory fragmentation
 
 # Initialisation parameters function
-def initialize_parameters(model:nn.Module, mean:float = 0.0, std:float = 0.02): 
+def initialize_parameters(model:nn.Module, mean:float = 0.0, std:float = 0.02):
     """
     Initializes model parameters with a normal distribution and bias parameters with zeros.
     
@@ -64,7 +65,7 @@ def get_optimizer_and_criterion(model, config):
     return optimizer, criterion
 
 # Training function with k-fold cross-validation
-def train_model_cross(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=1000, patience=30, threshold_correct=0.5):
+def train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=1000, patience=30, threshold_correct=0.5, best_model_criterion='roc_auc'):
     """
     Trains the model with k-fold cross-validation.
     
@@ -84,6 +85,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
     """
     best_model_wts = model.state_dict() # Save the best model weights
     best_acc = 0.0 # Initialize best accuracy
+    best_roc_auc = 0.0 # Initialize best ROC AUC
     epochs_no_improve = 0 # Initialize counter for epochs without improvement
 
     # Loop through each epoch
@@ -100,10 +102,12 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
 
             running_loss = 0.0 # Initialize running loss
             running_corrects = 0 # Initialize correct predictions count
+            all_labels = []
+            all_outputs = []
 
             # Loop through data batches
             for inputs, labels in data_loader:
-                inputs, labels = inputs.to(device), labels.float().to(device)
+                inputs, labels = inputs.to(device), labels.float().to(device).view(-1, 1)
                 optimizer.zero_grad() # Clear previous gradients
 
                 # Enable gradients only during training
@@ -120,20 +124,26 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
                 # Accumulate loss and Count correct predictions
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds.float() == labels.data)
+                all_labels.extend(labels.cpu().numpy())
+                all_outputs.extend(outputs.cpu().detach().numpy())
 
             # Compute average loss and accuracy for the epoch
             epoch_loss = running_loss / len(data_loader.dataset)
             epoch_acc = running_corrects.float() / len(data_loader.dataset)
+            epoch_roc_auc = roc_auc_score(all_labels, all_outputs)
 
             # Log metrics to W&B
             wandb.log({
                 f"{phase}_loss": epoch_loss,   # Log loss for the current phase
                 f"{phase}_accuracy": epoch_acc, # Log accuracy for the current phase
+                f"{phase}_roc_auc": epoch_roc_auc, # Log ROC AUC for the current phase
                 "epoch": epoch # Log current epoch
             })
 
-            # Check for improvements in validation accuracy
-            if phase == 'Val' and epoch_acc > best_acc:
+            # Check for improvements in validation accuracy or ROC AUC
+            improvement = epoch_roc_auc > best_roc_auc if best_model_criterion == 'roc_auc' else epoch_acc > best_acc
+            if phase == 'Val' and improvement:
+                best_roc_auc = epoch_roc_auc
                 best_acc = epoch_acc
                 best_model_wts = model.state_dict()
                 epochs_no_improve = 0
@@ -145,15 +155,15 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
                 print(f"Early stopping at epoch {epoch}")
                 wandb.log({"early_stopping_epoch": epoch}) # Log early stopping epoch
                 model.load_state_dict(best_model_wts) # Load best model weights
-                return model, best_acc
+                return model, best_acc, best_roc_auc
             
         # Clear CUDA cache
         torch.cuda.empty_cache()
 
-    return model, best_acc
+    return model, best_acc, best_roc_auc
 
 # Cross-validation and hyperparameter sweep function
-def cross_validate_model(dataset, config, device, save_path_wb, k_folds=5):
+def train_cross_validation(dataset, config, device, save_path_wb, k_folds=5, best_model_criterion='roc_auc'):
     """
     Performs cross-validation and hyperparameter sweep on the model.
     
@@ -170,11 +180,10 @@ def cross_validate_model(dataset, config, device, save_path_wb, k_folds=5):
     # Initializations
     kf = KFold(n_splits=k_folds, shuffle=True) # KFold object
     best_avg_acc = 0.0 # Variable to store best average accuracy
+    best_avg_roc_auc = 0.0 # Variable to store best average ROC AUC
     best_model_wts = None # Variable to store best model weights
-
-    '''# Using only the training data for cross-validation
-    train_signals = dataset.train_signals
-    train_labels = dataset.train_labels'''
+    fold_val_acc = []
+    fold_val_roc_auc = []
 
     # Loop through each fold
     for fold, (train_index, val_index) in enumerate(kf.split(range(len(dataset.tensors[0]))), 1):        
@@ -198,19 +207,25 @@ def cross_validate_model(dataset, config, device, save_path_wb, k_folds=5):
         wandb.watch(model, criterion, log="gradients")
 
         # Train the model for the current fold
-        best_model, fold_acc = train_model_cross(model, train_loader, val_loader, criterion, optimizer, device, config.epochs, config.patience, config.threshold_correct)
+        best_model, fold_acc, fold_roc_auc = train(model, train_loader, val_loader, criterion, optimizer, device, config.epochs, config.patience, config.threshold_correct, best_model_criterion=best_model_criterion)
+
+        fold_val_acc.append(fold_acc) # Store validation accuracy for the fold
+        fold_val_roc_auc.append(fold_roc_auc) # Store validation ROC AUC for the fold
 
         # Log GPU/CPU stats to W&B
         wandb.log({"GPU_memory_allocated": torch.cuda.memory_allocated(), "CPU_usage": os.cpu_count()})
 
-        # Update best model if accuracy improves
-        if fold_acc > best_avg_acc:
+        # Update best model if ROC AUC improves
+        improvement = fold_roc_auc > best_avg_roc_auc if best_model_criterion == 'roc_auc' else fold_acc > best_avg_acc
+        if improvement:
+            best_avg_roc_auc = fold_roc_auc # Update best average ROC AUC
             best_avg_acc = fold_acc # Update best average accuracy
             best_model_wts = copy.deepcopy(best_model.state_dict())  # Copy best model weights
-            print(f"New best model found for fold {fold} with accuracy {fold_acc}")
+            print(f"New best model (according to {best_model_criterion}) found for fold {fold} with ROC AUC {fold_roc_auc} and accuracy {fold_acc}")
 
-    
-    # Save the model with the best accuracy across all folds
+    wandb.log({"kfold_avg_accuracy": np.mean(fold_val_acc), "kfold_avg_roc_auc": np.mean(fold_val_roc_auc)}) # Log average accuracy and ROC AUC across all folds
+
+    # Save the model with the best ROC AUC across all folds
     dir_name = wandb.run.dir.split('/')[-2] 
     model_dir = os.path.join(save_path_wb, dir_name)
 
@@ -218,15 +233,12 @@ def cross_validate_model(dataset, config, device, save_path_wb, k_folds=5):
 
     final_model_save_path = os.path.join(model_dir, 'best_model.pth')
     torch.save(best_model_wts, final_model_save_path)
-    print(f"Saved best model with accuracy {best_avg_acc} at {final_model_save_path}")
+    print(f"Saved best model with ROC AUC {best_avg_roc_auc} at {final_model_save_path}")
 
     wandb.finish()
 
-        
-        
-
 # Main function to start training with W&B sweep
-def train(config=None):
+def run_training_process(config=None, best_model_criterion='roc_auc'):
     """
     Starts the training process with W&B integration.
     Initializes the W&B run, sets up the device (CPU or GPU), loads the dataset, and starts
@@ -239,17 +251,17 @@ def train(config=None):
         None
     """
     # Load
-    _, _, _, _, _, _, _, csv_input_file, csv_label_file, _, _, save_path_wb, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+    _, _, _, _, _, _, _, csv_file_train, _, _, _, _, _, _, save_path_wb = load_hyperparams(pathConfiguratorYaml)
 
     # Initialize W&B with the given configuration
     with wandb.init(config=config):
         config = wandb.config  # Access the W&B configuration settings
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        dataset = CustomDataset(csv_input_file, csv_label_file)  # Path to your dataset
+        dataset = NystDataset(csv_file_train)  # Path to your dataset
 
         # Create the training and validation datasets and convert numpy arrays to PyTorch tensors
-        train_input_tensor = torch.tensor(dataset.train_signals, dtype=torch.float32)
-        train_labels_tensor = torch.tensor(dataset.train_labels, dtype=torch.float32)
+        train_input_tensor = torch.tensor(dataset.fil_norm_data, dtype=torch.float32)
+        train_labels_tensor = torch.tensor(dataset.extr_data['labels'], dtype=torch.float32)
                 
         # Calculate the number of samples per fold
         n_samples = len(train_input_tensor)
@@ -263,4 +275,4 @@ def train(config=None):
         train_dataset_truncated = TensorDataset(train_input_truncated, train_labels_truncated)
 
         # Start cross-validation
-        cross_validate_model(train_dataset_truncated, config, device, save_path_wb, k_folds=5)
+        train_cross_validation(train_dataset_truncated, config, device, save_path_wb, k_folds=5, best_model_criterion=best_model_criterion)
