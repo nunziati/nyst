@@ -14,9 +14,9 @@ output_folder_lab:
 
 # VALUES CONFIGURATION
 clip_duration:
-    10
+    5
 overlapping:
-    8
+    3
 
                                                   ############################################################
 
@@ -37,11 +37,11 @@ output_folder_extr:
                                                   ############################################################  
 # PATHS
 csv_input_file:
-    'D:/nyst_labelled_videos/video_features.csv'
+    '/repo/porri/nyst_labelled_videos/train_dataset.csv'
 csv_label_file:
-    'D:/nyst_labelled_videos/labels.csv'
+    '/repo/porri/nyst_labelled_videos/labels.csv'
 new_csv_file:
-    'D:/nyst_labelled_videos/merged_data.csv'
+    '/repo/porri/nyst_labelled_videos/video_features_interp.csv'
 # VALUES CONFIGURATION
 preprocess:
     ['cubic_interpolation']

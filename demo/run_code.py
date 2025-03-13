@@ -96,7 +96,7 @@ def main(option):
         for prep in preprocess:
             # Preprocess signals
             if prep == 'cubic_interpolation':
-                data = cubic_interpolation(input_data)
+                data = cubic_interpolation(input_data,150)
             elif prep == 'preprocess_interpolation':
                 data = preprocess_interpolation(input_data)
             else:

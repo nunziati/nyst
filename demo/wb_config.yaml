@@ -7,15 +7,13 @@ parameters:
   batch_size:
     values: [8, 16, 32]
   lr:
-    values: [0.001, 0.0001, 0.00001]
+    values: [0.001]
   epochs:
     values: [50]
   threshold_correct:
     values: [0.5]
   patience:
     values: [5, 10]
-  threshold_correct:
-    values: [0.5]
   optimizer:
     values: ['adam', 'sgd']
   criterion:
@@ -31,4 +29,4 @@ early_terminate:
   s: 2  
 
 #run_cap: 2
-concurrency: 2 #number of concurrent processes
+concurrency: 1 #number of concurrent processes

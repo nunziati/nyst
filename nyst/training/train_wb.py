@@ -10,7 +10,7 @@ from sklearn.model_selection import KFold
 import os
 from demo.yaml_function import load_hyperparams, pathConfiguratorYaml
 from nyst.classifier.classifier import NystClassifier
-from nyst.dataset.dataset import CustomDataset
+from nyst.dataset.dataset import NystDataset
 
 # Set the desired GPU device and manage CUDA memory fragmentation
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Set desired GPU device
@@ -239,17 +239,17 @@ def train(config=None):
         None
     """
     # Load
-    _, _, _, _, _, _, _, _, csv_label_file, csv_input_file_int, _, save_path_wb, _, _, _, _, _, _, _, _ = load_hyperparams(pathConfiguratorYaml) 
+    _, _, _, _, _, _, _, csv_file_train, _, _, _, _, _, _, save_path_wb = load_hyperparams(pathConfiguratorYaml) 
 
     # Initialize W&B with the given configuration
     with wandb.init(config=config):
         config = wandb.config  # Access the W&B configuration settings
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        dataset = CustomDataset(csv_input_file_int, csv_label_file)  # Path to your dataset
+        dataset = NystDataset(csv_file_train)  # Path to your dataset
 
         # Create the training and validation datasets and convert numpy arrays to PyTorch tensors
-        train_input_tensor = torch.tensor(dataset.train_signals, dtype=torch.float32)
-        train_labels_tensor = torch.tensor(dataset.train_labels, dtype=torch.float32)
+        train_input_tensor = torch.tensor(dataset.fil_norm_data, dtype=torch.float32)
+        train_labels_tensor = torch.tensor(dataset.extr_data['labels'], dtype=torch.float32)
                 
         # Calculate the number of samples per fold
         n_samples = len(train_input_tensor)

@@ -89,7 +89,7 @@ print("All done, class weights:")
 print(class_weights)
 #mdlname = "deeplabv3plus_face_segmentation_augmentation_class_weights_latest_fixConv.h5"
 #mdlname = "eyes_seg.h5"
-mdlname = "eyes_seg_threshold.h5"
+mdlname = "eyes_seg_threshold_test.h5"
 
 if not RELOAD_TRAINED_MODEL or not os.path.exists(mdlname):
     print("Training model...")
