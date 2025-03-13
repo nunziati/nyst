@@ -14,6 +14,7 @@ from nyst.pupil import CenterPupilIrisRegionDetector
 from nyst.analysis import FirstSpeedExtractor
 from nyst.visualization import FirstFrameAnnotator
 from nyst.preprocessing import PreprocessingSignalsVideos
+from nyst.dataset.preprocess_function import cubic_interpolate_signal
 
 class FirstPipeline:
     def __init__(self):
@@ -29,6 +30,7 @@ class FirstPipeline:
         self.preprocess = PreprocessingSignalsVideos()
         self.frame_annotator = FirstFrameAnnotator()
         self.speed_extractor = FirstSpeedExtractor(time_resolutions=[5])
+        self.target_fps = 30
         
     def apply(self, frame, count_from_lastRoiupd:int, count:int, threshold:int=30, update_roi:bool=True) -> tuple:
         '''
@@ -130,7 +132,7 @@ class FirstPipeline:
         
         return left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd
 
-    def run(self, video_path:str, output_path:str, idx:int) -> dict:
+    def run(self, video_path:str, output_path:str, idx:int, write_video = True, plot_video = False) -> dict:
         '''
         Processes a video to extract the absolute positions of the left and right eye pupils,
         annotates each frame, and calculates the speed of pupil movements.
@@ -154,9 +156,10 @@ class FirstPipeline:
         # Get the frames per second (FPS) and resolution of the video
         fps = cap.get(cv2.CAP_PROP_FPS)
         resolution = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-   
-        # Create a video writer object to save the annotated video
-        annotated_video_writer = cv2.VideoWriter(f"{output_path}/Annotated_videos/annotated_video_{idx}.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, resolution)
+
+        if write_video:
+            # Create a video writer object to save the annotated video
+            annotated_video_writer = cv2.VideoWriter(f"{output_path}/Annotated_videos/annotated_video_{idx}.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, resolution)
         count_from_lastRoiupd = 0
 
         # Read the first frame of the video
@@ -183,12 +186,14 @@ class FirstPipeline:
         annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
         
 
-        # Display the annotated frame
-        #cv2.imshow("frame", annotated_frame)
-        #cv2.waitKey(1)
+        if plot_video:
+            # Display the annotated frame
+            cv2.imshow("frame", annotated_frame)
+            cv2.waitKey(1)
 
-        # Write the annotated frame to the video writer
-        annotated_video_writer.write(annotated_frame)
+        if write_video:
+            # Write the annotated frame to the video writer
+            annotated_video_writer.write(annotated_frame)
 
         # Loop to process each frame of the video
         while True:
@@ -220,20 +225,26 @@ class FirstPipeline:
             # Annotate the frame with the pupil positions
             annotated_frame = self.frame_annotator.apply(frame, left_pupil_absolute_position, right_pupil_absolute_position)
 
-            # Display the annotated frame
-            #cv2.imshow("frame", annotated_frame)
+            if plot_video:
+                # Display the annotated frame
+                cv2.imshow("frame", annotated_frame)
 
-            # Exit if 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                # Exit if 'q' is pressed
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
             
-            # Write the annotated frame to the video writer
-            annotated_video_writer.write(annotated_frame)
+            if write_video:
+                # Write the annotated frame to the video writer
+                annotated_video_writer.write(annotated_frame)
 
         # Clean up and release resources
-        cv2.destroyAllWindows()
+        if plot_video:
+            cv2.destroyAllWindows()
+
         cap.release()
-        annotated_video_writer.release()
+        
+        if write_video:
+            annotated_video_writer.release()
 
         # Convert the positions lists to numpy arrays
         left_eye_absolute_positions_dirty = np.array(left_eye_absolute_positions)
@@ -243,9 +254,14 @@ class FirstPipeline:
         left_eye_absolute_positions = self.preprocess.interpolate_nans(left_eye_absolute_positions_dirty)
         right_eye_absolute_positions = self.preprocess.interpolate_nans(right_eye_absolute_positions_dirty)
 
+        # Normalize the framerate to 30 fps using cubic interpolation
+        target_frames = len(left_eye_absolute_positions) / fps * self.target_fps
+        left_eye_absolute_positions = cubic_interpolate_signal(left_eye_absolute_positions, target_frames)
+        right_eye_absolute_positions = cubic_interpolate_signal(right_eye_absolute_positions, target_frames)
+
         # Extract speed information for the left and right eyes
-        left_eye_speed_dict = self.speed_extractor.apply(left_eye_absolute_positions, fps)
-        right_eye_speed_dict = self.speed_extractor.apply(right_eye_absolute_positions, fps)
+        left_eye_speed_dict = self.speed_extractor.apply(left_eye_absolute_positions, self.target_fps)
+        right_eye_speed_dict = self.speed_extractor.apply(right_eye_absolute_positions, self.target_fps)
 
         # Combine the speed information into a dictionary
         speed_dict = {
