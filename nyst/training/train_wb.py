@@ -103,7 +103,7 @@ def train_model_cross(model, train_loader, val_loader, criterion, optimizer, dev
 
             # Loop through data batches
             for inputs, labels in data_loader:
-                inputs, labels = inputs.to(device), labels.float().to(device)
+                inputs, labels = inputs.to(device), labels.float().to(device).view(-1, 1)
                 optimizer.zero_grad() # Clear previous gradients
 
                 # Enable gradients only during training
