@@ -19,9 +19,10 @@ class FirstEyeRoiDetector:
     Attributes:
     - model_path: Path to the YOLO model weights.
     """
-    def __init__(self, model_path):
+    def __init__(self, model_path, conf=0.5):
         # Load the YOLO model
         self.model = YOLO(model_path)  # Ensure model_path points to a YOLOv11 weights file
+        self.conf = conf
 
     def apply(self, frame, count_from_lastRoiupd, old_left_eye, old_right_eye):
         """
@@ -35,7 +36,7 @@ class FirstEyeRoiDetector:
         """
         try:
             # Perform detection
-            results = self.model.predict(frame, conf=0.5) # Adjust confidence threshold as needed
+            results = self.model.predict(frame, conf=self.conf) # Adjust confidence threshold as needed
 
             # Extract detections
             detections = results[0].boxes.data.cpu().numpy()  # Assuming YOLO outputs boxes in (x1, y1, x2, y2) format
