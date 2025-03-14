@@ -1,23 +1,23 @@
 # SWEEP SETTINGS
 project: nyst_detection
 
-method: grid  # Can be 'random' or 'grid'
+method: random  # Can be 'random' or 'grid'
 
 parameters:
   batch_size:
-    values: [8, 16, 32,64]
+    values: [8, 16, 32, 64, 128]
   lr:
-    values: [0.001, 0.0001]
+    values: [0.01, 0.003, 0.001, 0.0003, 0.0001, 0.00003, 0.00001]
   epochs:
-    values: [50, 100, 1000]
+    values: [1000]
   threshold_correct:
     values: [0.5]
   patience:
-    values: [5, 10, 20]
+    values: [5, 10, 20, 40]
   optimizer:
-    values: ['adam', 'sgd']
+    values: ['adam'] #'sgd'    
   criterion:
-    values: ['BCELoss', 'MSELoss']
+    values: ['BCELoss','MSELoss'] 
 
 metric:
   goal: minimize

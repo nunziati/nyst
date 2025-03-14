@@ -51,7 +51,7 @@ def split_data(root, perc_test=0.2):
     - None: The function saves the training and test sets to 'train_label.csv' and 'test_label.csv' respectively.
     '''
     label_df = pd.read_csv(root / 'labels.csv')
-    feature_df = pd.read_csv(root / "video_features_interp.csv")
+    feature_df = pd.read_csv(root / "video_features.csv")
     
     # Change the path format in the "video" column of both df, (from windows to linux)
     label_df['video'] = label_df['video'].apply(lambda x: x.replace('\\', '/'))

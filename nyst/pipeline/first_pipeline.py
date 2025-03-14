@@ -255,7 +255,28 @@ class FirstPipeline:
         right_eye_absolute_positions = self.preprocess.interpolate_nans(right_eye_absolute_positions_dirty)
 
         # Normalize the framerate to 30 fps using cubic interpolation
-        target_frames = len(left_eye_absolute_positions) / fps * self.target_fps
+        # Percorso del file di log
+        log_file_path = "/repo/porri/nyst_labelled_videos/logfile.txt"  # Sostituisci con il percorso desiderato
+
+        # Contatore per target_frames diverso da 150
+        if not os.path.exists(log_file_path):
+            counter = 0  # Inizializza il contatore se il file non esiste
+        else:
+            with open(log_file_path, "r") as file:
+                counter = int(file.read())  # Leggi il valore corrente del contatore
+
+        # Calcola target_frames
+        target_frames = int((len(left_eye_absolute_positions) / fps) * self.target_fps)
+
+        # Verifica se target_frames è diverso da 150
+        if target_frames != 150:
+            target_frames = 150  # Imposta target_frames a 150
+            counter += 1  # Incrementa il contatore
+
+            # Scrivi il nuovo valore del contatore nel file di log
+            with open(log_file_path, "w") as file:
+                file.write(str(counter))
+
         left_eye_absolute_positions = cubic_interpolate_signal(left_eye_absolute_positions, target_frames)
         right_eye_absolute_positions = cubic_interpolate_signal(right_eye_absolute_positions, target_frames)
 

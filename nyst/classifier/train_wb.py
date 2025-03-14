@@ -223,7 +223,24 @@ def train_cross_validation(dataset, config, device, save_path_wb, k_folds=5, bes
             best_model_wts = copy.deepcopy(best_model.state_dict())  # Copy best model weights
             print(f"New best model (according to {best_model_criterion}) found for fold {fold} with ROC AUC {fold_roc_auc} and accuracy {fold_acc}")
 
-    wandb.log({"kfold_avg_accuracy": np.mean(fold_val_acc), "kfold_avg_roc_auc": np.mean(fold_val_roc_auc)}) # Log average accuracy and ROC AUC across all folds
+
+    # Verifica il tipo degli elementi in fold_val_acc e fold_val_roc_auc
+    if isinstance(fold_val_acc[0], torch.Tensor):  # Se sono tensori PyTorch
+        kfold_avg_accuracy = np.mean(torch.stack(fold_val_acc).cpu().numpy())
+    else:  # Se sono già valori NumPy o scalari
+        kfold_avg_accuracy = np.mean(fold_val_acc)
+
+    if isinstance(fold_val_roc_auc[0], torch.Tensor):  # Se sono tensori PyTorch
+        kfold_avg_roc_auc = np.mean(torch.stack(fold_val_roc_auc).cpu().numpy())
+    else:  # Se sono già valori NumPy o scalari
+        kfold_avg_roc_auc = np.mean(fold_val_roc_auc)
+
+    # Logga i risultati su wandb
+    wandb.log({
+        "kfold_avg_accuracy": kfold_avg_accuracy,
+        "kfold_avg_roc_auc": kfold_avg_roc_auc
+    })
+    
 
     # Save the model with the best ROC AUC across all folds
     dir_name = wandb.run.dir.split('/')[-2] 
