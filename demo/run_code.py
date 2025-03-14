@@ -125,9 +125,9 @@ def main(option):
 
             # Create a sweep in W&B using the configuration loaded
             sweep_id = wandb.sweep(sweep_config, project="nyst_detection")
-            sweep_id = "7wymbws0"
+           # sweep_id = "7wymbws0"
             # Launches the W&B agent to run the sweep
-            wandb.agent(sweep_id, run_training_process, count=100)
+            wandb.agent(sweep_id, run_training_process, count=200)
         except Exception as e:
             print(f"An error occurred during the Training and Validation phase: {e}")
             exit()    
