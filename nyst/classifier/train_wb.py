@@ -11,7 +11,7 @@ import os
 from demo.yaml_function import load_hyperparams, pathConfiguratorYaml
 from nyst.classifier.classifier import NystClassifier
 from nyst.dataset.dataset import NystDataset
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, roc_curve
 
 # Set the desired GPU device and manage CUDA memory fragmentation
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Set desired GPU device
@@ -156,9 +156,35 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
                 wandb.log({"early_stopping_epoch": epoch}) # Log early stopping epoch
                 model.load_state_dict(best_model_wts) # Load best model weights
                 return model, best_acc, best_roc_auc
-            
+
         # Clear CUDA cache
         torch.cuda.empty_cache()
+    
+    # Compute predictions for the best model
+    model.load_state_dict(best_model_wts)
+    model.eval()
+    all_labels = []
+    all_outputs = []
+
+    with torch.no_grad():
+        for inputs, labels in val_loader:
+            inputs, labels = inputs.to(device), labels.float().to(device).view(-1, 1)
+            outputs = model(inputs)
+            all_labels.extend(labels.cpu().numpy())
+            all_outputs.extend(outputs.cpu().numpy())
+
+    # Compute ROC curve
+    fpr, tpr, _ = roc_curve(all_labels, all_outputs)
+    
+    # Log ROC curve plot to W&B
+    wandb.log({"roc_curve": wandb.plot.line_series(
+        xs=fpr,
+        ys=[tpr],
+        keys=["ROC Curve"],
+        title="ROC Curve",
+        xname="False Positive Rate",
+        yname="True Positive Rate"
+    )})
 
     return model, best_acc, best_roc_auc
 
