@@ -16,7 +16,7 @@ from nyst.dataset.preprocess_function import *
 
 
 class NystDataset(Dataset):
-    def __init__(self, filename):
+    def __init__(self, filename, std):
         self.data = pd.read_csv(filename)
         
         print('\n\t ---> Data splitting step COMPLETED\n')
@@ -34,6 +34,7 @@ class NystDataset(Dataset):
         self.fil_norm_data = self.normalization_signals()
         print('\n\t ---> Data normalization step COMPLETED\n')
 
+        self.std = std
         
     
     # Return the number of samples in the dataset
@@ -212,17 +213,18 @@ class NystDataset(Dataset):
         right_mean = eyes_mean[:, 2:, :]
         distances = np.linalg.norm(left_mean - right_mean, axis=1, keepdims=True)
 
+
         zero_mean_signals = signals - np.mean(signals, axis=2, keepdims=True)
         normalized_signals = zero_mean_signals / distances
         
-        # TO DO: Finire normalizzazione includendo std
+        normalized_signals = normalized_signals / self.std
 
-        return normalized_signals
+        return torch.from_numpy(normalized_signals).float()
         
 
 if __name__ == '__main__':
     # Test the NystDataset class
-    feature_file = "/repo/nunziati/nyst/video_features_interp.csv"
-    label_file = "/repo/nunziati/nyst/test_label.csv"
+    dataset_file = "/repo/nunziati/nyst/video_features_interp.csv"
+    std = np.load("/repo/nunziati/nyst/std.npy")
 
-    dataset = NystDataset(feature_file, label_file)
+    dataset = NystDataset(dataset_file, std)
