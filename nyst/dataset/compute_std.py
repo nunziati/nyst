@@ -13,21 +13,24 @@ def compute_std(data):
     '''
     
     # Compute the standard deviation of the signals
-    std = np.std(data, axis=1)
+    std = np.std(data, axis=(0,2))
+    
     
     return std
 
-def load_data(filename):
+def load_data(filename, filename_std):
+    std = np.load(filename_std)
     dataset = NystDataset(filename, 1)
     data = dataset.fil_norm_data.numpy()
     return data
 
 def main():
-    filename = 'data.csv'
-    data = load_data(filename)
+    filename = '/repo/porri/nyst_labelled_videos/train_dataset.csv'
+    filename_std = '/repo/porri/nyst_labelled_videos/std.npy'
+    data = load_data(filename, filename_std)
     std = compute_std(data)
 
-    np.save('std.npy', std)
+    np.save('/repo/porri/nyst_labelled_videos/std.npy', std)
     
     print(f'Standard deviation of the signals: {std}')
 

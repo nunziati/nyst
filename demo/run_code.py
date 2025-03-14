@@ -125,7 +125,7 @@ def main(option):
 
             # Create a sweep in W&B using the configuration loaded
             sweep_id = wandb.sweep(sweep_config, project="nyst_detection")
-
+            sweep_id = "7wymbws0"
             # Launches the W&B agent to run the sweep
             wandb.agent(sweep_id, run_training_process, count=100)
         except Exception as e:

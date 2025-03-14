@@ -17,9 +17,10 @@ from nyst.dataset.preprocess_function import *
 
 class NystDataset(Dataset):
     def __init__(self, filename, std):
-        self.data = pd.read_csv(filename)
         
-        print('\n\t ---> Data splitting step COMPLETED\n')
+        self.std = std
+
+        self.data = pd.read_csv(filename)
         
         # Exctract data into a dictionary
         self.extr_data = self.exctraction_values()
@@ -34,7 +35,7 @@ class NystDataset(Dataset):
         self.fil_norm_data = self.normalization_signals()
         print('\n\t ---> Data normalization step COMPLETED\n')
 
-        self.std = std
+        
         
     
     # Return the number of samples in the dataset
@@ -217,7 +218,8 @@ class NystDataset(Dataset):
         zero_mean_signals = signals - np.mean(signals, axis=2, keepdims=True)
         normalized_signals = zero_mean_signals / distances
         
-        normalized_signals = normalized_signals / self.std
+        
+        normalized_signals = normalized_signals / np.array(self.std).reshape(1,-1,1)
 
         return torch.from_numpy(normalized_signals).float()
         
