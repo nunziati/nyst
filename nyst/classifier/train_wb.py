@@ -304,8 +304,8 @@ def run_training_process(config=None, best_model_criterion='roc_auc'):
         dataset = NystDataset(csv_file_train, std)  # Path to your dataset
 
         # Create the training and validation datasets and convert numpy arrays to PyTorch tensors
-        train_input_tensor = torch.tensor(dataset.fil_norm_data, dtype=torch.float32)
-        train_labels_tensor = torch.tensor(dataset.extr_data['labels'], dtype=torch.float32)
+        train_input_tensor = dataset.fil_norm_data.clone().detach().to(torch.float32)
+        train_labels_tensor = torch.from_numpy(dataset.extr_data['labels']).to(torch.float32)
                 
         # Calculate the number of samples per fold
         n_samples = len(train_input_tensor)
