@@ -64,7 +64,7 @@ def get_optimizer_and_criterion(model, config):
 
     return optimizer, criterion
 
-def log_roc_curve(model, best_model_wts, val_loader, device):
+def log_roc_curve(model, best_model_wts, val_loader, device, id):
     # Compute predictions for the best model
     model.load_state_dict(best_model_wts)
     model.eval()
@@ -85,13 +85,13 @@ def log_roc_curve(model, best_model_wts, val_loader, device):
     wandb.log({"roc_curve": wandb.plot.line_series(
         xs=fpr,
         ys=[tpr],
-        keys=["ROC Curve"],
+        keys=[f"ROC Curve {id}"],
         title="ROC Curve",
         xname="False Positive Rate",
     )})
 
 # Training function with k-fold cross-validation
-def train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=1000, patience=30, threshold_correct=0.5, best_model_criterion='roc_auc'):
+def train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=1000, patience=30, threshold_correct=0.5, best_model_criterion='roc_auc', training_id=0):
     """
     Trains the model with k-fold cross-validation.
     
@@ -182,14 +182,14 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
                 wandb.log({"early_stopping_epoch": epoch}) # Log early stopping epoch
                 model.load_state_dict(best_model_wts) # Load best model weights
 
-                log_roc_curve(model, best_model_wts, val_loader, device)
+                log_roc_curve(model, best_model_wts, val_loader, device, training_id)
 
                 return model, best_acc, best_roc_auc
 
         # Clear CUDA cache
         torch.cuda.empty_cache()
 
-    log_roc_curve(model, best_model_wts, val_loader, device)
+    log_roc_curve(model, best_model_wts, val_loader, device, training_id)
 
     return model, best_acc, best_roc_auc
 
@@ -238,7 +238,7 @@ def train_cross_validation(dataset, config, device, save_path_wb, k_folds=5, bes
         wandb.watch(model, criterion, log="gradients")
 
         # Train the model for the current fold
-        best_model, fold_acc, fold_roc_auc = train(model, train_loader, val_loader, criterion, optimizer, device, config.epochs, config.patience, config.threshold_correct, best_model_criterion=best_model_criterion)
+        best_model, fold_acc, fold_roc_auc = train(model, train_loader, val_loader, criterion, optimizer, device, config.epochs, config.patience, config.threshold_correct, best_model_criterion=best_model_criterion, training_id=fold)
 
         fold_val_acc.append(fold_acc) # Store validation accuracy for the fold
         fold_val_roc_auc.append(fold_roc_auc) # Store validation ROC AUC for the fold
