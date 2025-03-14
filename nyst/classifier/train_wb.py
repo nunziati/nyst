@@ -112,7 +112,6 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
             keys=["ROC Curve"],
             title="ROC Curve",
             xname="False Positive Rate",
-            yname="True Positive Rate"
         )})
 
     # Loop through each epoch
