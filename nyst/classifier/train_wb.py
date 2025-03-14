@@ -64,6 +64,32 @@ def get_optimizer_and_criterion(model, config):
 
     return optimizer, criterion
 
+def log_roc_curve(model, best_model_wts, val_loader, device):
+    # Compute predictions for the best model
+    model.load_state_dict(best_model_wts)
+    model.eval()
+    all_labels = []
+    all_outputs = []
+
+    with torch.no_grad():
+        for inputs, labels in val_loader:
+            inputs, labels = inputs.to(device), labels.float().to(device).view(-1, 1)
+            outputs = model(inputs)
+            all_labels.extend(labels.cpu().numpy())
+            all_outputs.extend(outputs.cpu().numpy())
+
+    # Compute ROC curve
+    fpr, tpr, _ = roc_curve(all_labels, all_outputs)
+    
+    # Log ROC curve plot to W&B
+    wandb.log({"roc_curve": wandb.plot.line_series(
+        xs=fpr,
+        ys=[tpr],
+        keys=["ROC Curve"],
+        title="ROC Curve",
+        xname="False Positive Rate",
+    )})
+
 # Training function with k-fold cross-validation
 def train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=1000, patience=30, threshold_correct=0.5, best_model_criterion='roc_auc'):
     """
@@ -87,33 +113,6 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
     best_acc = 0.0 # Initialize best accuracy
     best_roc_auc = 0.0 # Initialize best ROC AUC
     epochs_no_improve = 0 # Initialize counter for epochs without improvement
-
-    def log_roc_curve():
-        # Compute predictions for the best model
-        model.load_state_dict(best_model_wts)
-        model.eval()
-        all_labels = []
-        all_outputs = []
-
-        with torch.no_grad():
-            for inputs, labels in val_loader:
-                inputs, labels = inputs.to(device), labels.float().to(device).view(-1, 1)
-                outputs = model(inputs)
-                all_labels.extend(labels.cpu().numpy())
-                all_outputs.extend(outputs.cpu().numpy())
-
-        # Compute ROC curve
-        fpr, tpr, _ = roc_curve(all_labels, all_outputs)
-        
-        # Log ROC curve plot to W&B
-        wandb.log({"roc_curve": wandb.plot.line_series(
-            xs=fpr,
-            ys=[tpr],
-            keys=["ROC Curve"],
-            title="ROC Curve",
-            xname="False Positive Rate",
-            yname="True Positive Rate"
-        )})
 
     # Loop through each epoch
     for epoch in range(num_epochs):
@@ -183,15 +182,15 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
                 wandb.log({"early_stopping_epoch": epoch}) # Log early stopping epoch
                 model.load_state_dict(best_model_wts) # Load best model weights
 
-                log_roc_curve() # Log ROC curve plot
+                log_roc_curve(model, best_model_wts, val_loader, device)
 
                 return model, best_acc, best_roc_auc
 
         # Clear CUDA cache
         torch.cuda.empty_cache()
 
-    log_roc_curve() # Log ROC curve plot
-    
+    log_roc_curve(model, best_model_wts, val_loader, device)
+
     return model, best_acc, best_roc_auc
 
 # Cross-validation and hyperparameter sweep function
