@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from nyst.classifier.tunedCNN_time import CNNfeatureExtractorTime
 
 class NystClassifier(nn.Module):
-    def __init__(self, input_dim=150, num_channels=8, nf=8, index_activation_middle_layer=0, index_activation_last_layer=-1):
+    def __init__(self, input_dim=150, num_channels=8, nf=8, index_activation_middle_layer=0, index_activation_last_layer=0):
         super(NystClassifier, self).__init__() # Calls up the constructor of the parents class 
         self.input_dim = input_dim # Number total frames
         self.num_channels = num_channels # Number of positions + speed
@@ -33,6 +33,27 @@ class NystClassifier(nn.Module):
             nn.Sigmoid()
         )
 
+    @staticmethod
+    def from_pretrained(path):
+        # Load the provided weights from a file
+        checkpoint = torch.load(path)
+        weights = checkpoint['weights']
+        params = checkpoint['params']
+
+        # Create an instance of NystClassifier using the provided parameters
+        classifier = NystClassifier(
+            input_dim=params['input_dim'],
+            num_channels=params['num_channels'],
+            nf=params['nf'],
+            index_activation_middle_layer=params['index_activation_middle_layer'],
+            index_activation_last_layer=params['index_activation_last_layer']
+        )
+        # Load the provided weights into the classifier
+        classifier.load_state_dict(weights)
+        classifier.eval()
+        
+        return classifier
+
     def forward(self, x):# batch_size, 8, 150
         # Pass the input through the tuned CNN to extract features
         features = self.tunedCNN(x)
@@ -46,6 +67,19 @@ class NystClassifier(nn.Module):
         self.load_state_dict(torch.load(path))
         self.eval()
     
+    def save_weights(self, path):
+        # Save the weights for the tuned CNN and the output network
+        weights = self.state_dict()
+        params = {
+            'input_dim': self.input_dim,
+            'num_channels': self.num_channels,
+            'nf': self.nf,
+            'index_activation_middle_layer': self.index_activation_middle_layer,
+            'index_activation_last_layer': self.index_activation_last_layer
+        }
+
+        torch.save({'weights': weights, 'params': params}, path)
+        print(f"Model saved to {path}")
     
     
     
