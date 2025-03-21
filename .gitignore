@@ -181,3 +181,9 @@ data/
 /nyst/roi/Accurate_Eyes_Detection_Dataset.v1i.yolov11.zip
 nyst/roi/yolo_dataset
 /nyst/roi/Accurate_Eyes_Detection_Dataset.v1i.yolov11
+
+**/*.csv
+**/*.npy
+**/*.pt
+**/*.html
+logfile.txt
