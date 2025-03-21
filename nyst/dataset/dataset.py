@@ -26,6 +26,10 @@ class NystDataset(Dataset):
         self.extr_data = self.exctraction_values()
         print('\n\t ---> Data extraction step COMPLETED\n')
 
+        # Esegui la signal augmentation
+        self.augment_signals()
+        print('\n\t ---> Signal augmentation step COMPLETED\n')
+
         # METODO DA RIVEDERE, SE SERVISSE
         # Filter the invalid data             
         # self.fil_data, self.invalid_video_info = self.filtering_invalid_data()
@@ -222,7 +226,52 @@ class NystDataset(Dataset):
         normalized_signals = normalized_signals / np.array(self.std).reshape(1,-1,1)
 
         return torch.from_numpy(normalized_signals).float()
+    
+    # Signal Augmentation
+    def augment_signals(self):
+        '''
+        Esegue la signal augmentation invertendo i segnali lungo l'asse X e modificando
+        l'identificativo del paziente.
 
+        Modifiche:
+        - Inverte le posizioni X e le velocità lungo X moltiplicandole per -1.
+        - Aggiunge il suffisso "_a" al numero del paziente per i dati augmentati.
+
+        Aggiorna:
+        - self.extr_data con i segnali augmentati.
+        '''
+        # Estrai i segnali e le informazioni sui pazienti
+        signals = self.extr_data['signals']
+        patients = self.extr_data['patients']
+        samples = self.extr_data['samples']
+        labels = self.extr_data['labels']
+
+        # Crea una copia dei segnali per l'augmentation
+        augmented_signals = np.copy(signals)
+
+        # Inverti le posizioni X e le velocità lungo X
+        augmented_signals[:, 0, :] *= -1  # left_position X
+        augmented_signals[:, 2, :] *= -1  # right_position X
+        augmented_signals[:, 4, :] *= -1  # left_speed X
+        augmented_signals[:, 6, :] *= -1  # right_speed X
+
+        # Swap left and right positions and speeds (x and y signals)
+        augmented_signals[:, [0, 1, 2, 3]] = augmented_signals[:, [2, 3, 0, 1]]
+        augmented_signals[:, [4, 5, 6, 7]] = augmented_signals[:, [6, 7, 4, 5]]
+
+        # Modifica l'identificativo del paziente aggiungendo "_a"
+        augmented_patients = np.array([f"{patient}_a" for patient in patients])
+
+        # Modifica i sample per includere i nuovi pazienti
+        augmented_samples = np.copy(samples)
+        augmented_samples[:, 0] = augmented_patients  # Aggiorna il numero del paziente
+
+        # Combina i segnali originali con quelli augmentati
+        self.extr_data['signals'] = np.concatenate((signals, augmented_signals), axis=0)
+        self.extr_data['patients'] = np.concatenate((patients, augmented_patients), axis=0)
+        self.extr_data['samples'] = np.concatenate((samples, augmented_samples), axis=0)
+        self.extr_data['labels'] = np.concatenate((labels, labels), axis=0)  # Stessi label per i dati augmentati
+        
 
 class NystInferenceDataset(NystDataset):
     def __init__(self, windows, std):
@@ -237,6 +286,7 @@ class NystInferenceDataset(NystDataset):
     def __getitem__(self, idx):
         return self.fil_norm_data[idx]
     
+
 
 if __name__ == '__main__':
     # Test the NystDataset class

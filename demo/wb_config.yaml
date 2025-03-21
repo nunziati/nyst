@@ -13,7 +13,7 @@ parameters:
   threshold_correct:
     values: [0.5]
   patience:
-    values: [5, 10, 20, 40]
+    values: [5, 10, 20, 40, 60]
   optimizer:
     values: ['adam'] #'sgd'    
   criterion:
@@ -21,7 +21,7 @@ parameters:
 
 metric:
   goal: minimize
-  name: validation_loss
+  name: kfold_avg_accuracy
 
 early_terminate:
   type: hyperband
