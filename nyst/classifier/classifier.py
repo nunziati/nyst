@@ -9,13 +9,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from nyst.classifier.tunedCNN_time import CNNfeatureExtractorTime
 
 class NystClassifier(nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim=150, num_channels=8, nf=8, index_activation_middle_layer=0, index_activation_last_layer=-1):
         super(NystClassifier, self).__init__() # Calls up the constructor of the parents class 
-        self.input_dim = 150 # Number total frames
-        self.num_channels = 8 # Number of positions + speed
-        self.nf = 8 # Number of filters
-        self.index_activation_middle_layer = 0 # Activation function middle layer
-        self.index_activation_last_layer = -1 # Activation function last layer
+        self.input_dim = input_dim # Number total frames
+        self.num_channels = num_channels # Number of positions + speed
+        self.nf = nf # Number of filters
+        self.index_activation_middle_layer = index_activation_middle_layer # Activation function middle layer
+        self.index_activation_last_layer = index_activation_last_layer # Activation function last layer
         
         # Initialize the tuned CNN and the output network
         self.tunedCNN = CNNfeatureExtractorTime(self.input_dim, self.num_channels, self.nf, self.index_activation_middle_layer, self.index_activation_last_layer)

@@ -222,7 +222,21 @@ class NystDataset(Dataset):
         normalized_signals = normalized_signals / np.array(self.std).reshape(1,-1,1)
 
         return torch.from_numpy(normalized_signals).float()
-        
+
+
+class NystInferenceDataset(NystDataset):
+    def __init__(self, windows, std):
+        self.extr_data = {'signals': windows}
+        self.std = std
+
+        self.fil_norm_data = self.normalization_signals()
+
+    def __len__(self):
+        return len(self.fil_norm_data)
+    
+    def __getitem__(self, idx):
+        return self.fil_norm_data[idx]
+    
 
 if __name__ == '__main__':
     # Test the NystDataset class

@@ -13,7 +13,7 @@ class CenterPupilIrisRegionDetector:
         #self.save_threshold_interval_counts = {"left_pupil+iris":0,"left_pupil":0,"left_pupil_list":[],"left_iris_list":[],"right_pupil+iris":0,"right_pupil":0,"right_pupil_list":[],"right_iris_list":[]}
         self.threshold = threshold
         
-    def apply(self, frame, mask, count, label, eyes_pos):
+    def apply(self, frame, mask, count, label, eyes_pos, plot=False):
         '''
         Detects the pupil or iris in the given frame using thresholding and contour analysis.
 
@@ -40,7 +40,9 @@ class CenterPupilIrisRegionDetector:
         # Display the original image with contours
         frame_with_contours = frame.copy()
         cv2.drawContours(frame_with_contours, contours, -1, (0, 255, 0), 2)
-        #cv2.imshow('Contours', frame_with_contours)
+        
+        if plot:
+            cv2.imshow('Contours', frame_with_contours)
 
         # Control the number of contours found
         if len(contours) == 0:
@@ -49,7 +51,9 @@ class CenterPupilIrisRegionDetector:
         # Sort the contours in descending order of their area
         contours = sorted(contours, key=lambda x: cv2.contourArea(x), reverse=True) # Sort in descending order of the list of contours by their area
         cv2.drawContours(frame, [contours[0]], -1, (0, 255, 0), 2)
-        #cv2.imshow('Largest Contour', frame)
+        
+        if plot:
+            cv2.imshow('Largest Contour', frame)
 
         # Select the contour with the biggest area
         largest_contour = contours[0]
@@ -76,7 +80,8 @@ class CenterPupilIrisRegionDetector:
         else:
             center = (None, None) # Invalid ellipse dimensions
 
-        cv2.waitKey(1)
+        if plot:
+            cv2.waitKey(1)
 
         return center  # Return the center of the pupil/iris                   
        

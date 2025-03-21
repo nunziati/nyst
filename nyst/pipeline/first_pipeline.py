@@ -17,20 +17,24 @@ from nyst.preprocessing import PreprocessingSignalsVideos
 from nyst.dataset.preprocess_function import cubic_interpolate_signal
 
 class FirstPipeline:
-    def __init__(self):
-        self.eye_roi_detector = FirstEyeRoiDetector("/repo/porri/nyst/yolo_models/best_yolo11m.pt")
+    def __init__(self, roi_detector_weights, eye_segmenter_weights, logfile_path, target_fps=30, interpolate=True):
+        self.logfile_path = logfile_path
+        self.roi_detector_weights = roi_detector_weights
+        self.eye_segmenter_weights = eye_segmenter_weights
+        self.eye_roi_detector = FirstEyeRoiDetector(self.roi_detector_weights)
         self.left_eye_roi_latch = FirstLatch()
         self.right_eye_roi_latch = FirstLatch()
         self.left_eye_center_latch = FirstLatch()
         self.right_eye_center_latch = FirstLatch()
         self.region_selector = FirstRegionSelector()
         #self.eye_roi_segmenter = FirstEyeRoiSegmenter('/repo/porri/model.h5')
-        self.eye_segmenter_threshold = SegmenterThreshold('/repo/porri/eyes_seg_threshold.h5')
+        self.eye_segmenter_threshold = SegmenterThreshold(self.eye_segmenter_weights)
         self.pupil_detector = CenterPupilIrisRegionDetector(threshold=50)
         self.preprocess = PreprocessingSignalsVideos()
         self.frame_annotator = FirstFrameAnnotator()
         self.speed_extractor = FirstSpeedExtractor(time_resolutions=[5])
-        self.target_fps = 30
+        self.target_fps = target_fps
+        self.interpolate = interpolate
         
     def apply(self, frame, count_from_lastRoiupd:int, count:int, threshold:int=30, update_roi:bool=True) -> tuple:
         '''
@@ -132,7 +136,7 @@ class FirstPipeline:
         
         return left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd
 
-    def run(self, video_path:str, output_path:str, idx:int, write_video = True, plot_video = False) -> dict:
+    def run(self, video_path:str, output_path:str, idx:int, write_video = True, plot_video = False, target_frames = None) -> dict:
         '''
         Processes a video to extract the absolute positions of the left and right eye pupils,
         annotates each frame, and calculates the speed of pupil movements.
@@ -147,14 +151,16 @@ class FirstPipeline:
         left_eye_absolute_positions = []
         right_eye_absolute_positions = []
 
-        # Creare la cartella solo se non esiste già
-        os.makedirs(f"{output_path}/Annotated_videos", exist_ok=True)
+        if write_video:
+            # Creare la cartella solo se non esiste già
+            os.makedirs(f"{output_path}/Annotated_videos", exist_ok=True)
 
         # Open the video file   
         cap = cv2.VideoCapture(video_path)
 
         # Get the frames per second (FPS) and resolution of the video
         fps = cap.get(cv2.CAP_PROP_FPS)
+
         resolution = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
         if write_video:
@@ -256,7 +262,7 @@ class FirstPipeline:
 
         # Normalize the framerate to 30 fps using cubic interpolation
         # Percorso del file di log
-        log_file_path = "/repo/porri/nyst_labelled_videos/logfile.txt"  # Sostituisci con il percorso desiderato
+        log_file_path = self.logfile_path # "/repo/porri/nyst_labelled_videos/logfile.txt"  # Sostituisci con il percorso desiderato
 
         # Contatore per target_frames diverso da 150
         if not os.path.exists(log_file_path):
@@ -265,24 +271,25 @@ class FirstPipeline:
             with open(log_file_path, "r") as file:
                 counter = int(file.read())  # Leggi il valore corrente del contatore
 
-        # Calcola target_frames
-        target_frames = int((len(left_eye_absolute_positions) / fps) * self.target_fps)
+        if self.interpolate:
+            # Calcola target_frames
+            target_frames = int((len(left_eye_absolute_positions) / fps) * self.target_fps)
 
-        # Verifica se target_frames è diverso da 150
-        if target_frames != 150:
-            target_frames = 150  # Imposta target_frames a 150
-            counter += 1  # Incrementa il contatore
+            # Verifica se target_frames è diverso da 150
+            if target_frames != 150:
+                target_frames = 150  # Imposta target_frames a 150
+                counter += 1  # Incrementa il contatore
 
-            # Scrivi il nuovo valore del contatore nel file di log
-            with open(log_file_path, "w") as file:
-                file.write(str(counter))
+                # Scrivi il nuovo valore del contatore nel file di log
+                with open(log_file_path, "w") as file:
+                    file.write(str(counter))
 
-        left_eye_absolute_positions = cubic_interpolate_signal(left_eye_absolute_positions, target_frames)
-        right_eye_absolute_positions = cubic_interpolate_signal(right_eye_absolute_positions, target_frames)
+            left_eye_absolute_positions = cubic_interpolate_signal(left_eye_absolute_positions, target_frames)
+            right_eye_absolute_positions = cubic_interpolate_signal(right_eye_absolute_positions, target_frames)
 
         # Extract speed information for the left and right eyes
-        left_eye_speed_dict = self.speed_extractor.apply(left_eye_absolute_positions, self.target_fps)
-        right_eye_speed_dict = self.speed_extractor.apply(right_eye_absolute_positions, self.target_fps)
+        left_eye_speed_dict = self.speed_extractor.apply(left_eye_absolute_positions, self.target_fps if self.interpolate else fps)
+        right_eye_speed_dict = self.speed_extractor.apply(right_eye_absolute_positions, self.target_fps if self.interpolate else fps)
 
         # Combine the speed information into a dictionary
         speed_dict = {
