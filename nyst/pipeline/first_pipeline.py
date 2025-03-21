@@ -4,6 +4,7 @@ import os
 import csv
 import sys
 import traceback
+from vidgear.gears import VideoGear
 
 # Add the 'code' directory to the PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -150,12 +151,23 @@ class FirstPipeline:
         # Creare la cartella solo se non esiste già
         os.makedirs(f"{output_path}/Annotated_videos", exist_ok=True)
 
+        cap_temp = cv2.VideoCapture(video_path)
+
+        total_frames = int(cap_temp.get(cv2.CAP_PROP_FRAME_COUNT))
+        cap_temp.release()
+
         # Open the video file   
-        cap = cv2.VideoCapture(video_path)
+        options = {'SMOOTHING_RADIUS': 10}
+        
+        # Apri il video con VideoGear
+        stream = VideoGear(source=video_path, stabilize=True, **options).start()
+
+        # Ottieni l'oggetto cv2.VideoCapture sottostante
+        cap = stream.stream
 
         # Get the frames per second (FPS) and resolution of the video
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        resolution = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        fps = cap.framerate
+        resolution = (cap.frame.shape[1], cap.frame.shape[0])
 
         if write_video:
             # Create a video writer object to save the annotated video
@@ -163,7 +175,10 @@ class FirstPipeline:
         count_from_lastRoiupd = 0
 
         # Read the first frame of the video
-        ret, frame = cap.read()
+        frame = stream.read()
+
+        if frame is not None:
+            frame = np.array(frame, dtype=np.uint8)
         
         # Frame counter
         count = 0
@@ -171,12 +186,8 @@ class FirstPipeline:
         # Print the frame counter
         print("\n\nFrame: 0  ---------------------------------------------------------------")
 
-        if ret is False:
-            # Raise an error if the frame could not be read
-            raise RuntimeError("Error reading video")
-        
         # Apply the processing method for absolute position pupil estimation to the frame
-        left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame,count_from_lastRoiupd,count)
+        left_pupil_absolute_position, right_pupil_absolute_position, count_from_lastRoiupd = self.apply(frame, count_from_lastRoiupd,count)
 
         # Append the positions to the respective lists (list of tuple of absolute x,y coordinates)
         left_eye_absolute_positions.append(left_pupil_absolute_position)
@@ -199,10 +210,13 @@ class FirstPipeline:
         while True:
         
             # Read the next frame of the video
-            ret, frame = cap.read()
-            # Break the loop if no frame is read (end of video)
-            if ret is False:
+            frame = stream.read()
+
+            if frame is None:
                 break
+
+            frame = np.array(frame, dtype=np.uint8)
+
             # Increment the frame counter
             count += 1
             
@@ -241,7 +255,7 @@ class FirstPipeline:
         if plot_video:
             cv2.destroyAllWindows()
 
-        cap.release()
+        stream.stop()
         
         if write_video:
             annotated_video_writer.release()

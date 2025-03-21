@@ -49,7 +49,7 @@ class CenterPupilIrisRegionDetector:
         # Sort the contours in descending order of their area
         contours = sorted(contours, key=lambda x: cv2.contourArea(x), reverse=True) # Sort in descending order of the list of contours by their area
         cv2.drawContours(frame, [contours[0]], -1, (0, 255, 0), 2)
-        #cv2.imshow('Largest Contour', frame)
+        # cv2.imshow('Largest Contour', frame)
 
         # Select the contour with the biggest area
         largest_contour = contours[0]

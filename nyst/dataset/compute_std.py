@@ -19,7 +19,7 @@ def compute_std(data):
     return std
 
 def load_data(filename, filename_std):
-    std = np.load(filename_std)
+   # std = np.load(filename_std)
     dataset = NystDataset(filename, 1)
     data = dataset.fil_norm_data.numpy()
     return data

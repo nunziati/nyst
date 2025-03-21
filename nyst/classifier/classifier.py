@@ -13,9 +13,9 @@ class NystClassifier(nn.Module):
         super(NystClassifier, self).__init__() # Calls up the constructor of the parents class 
         self.input_dim = 150 # Number total frames
         self.num_channels = 8 # Number of positions + speed
-        self.nf = 8 # Number of filters
+        self.nf = 32 # Number of filters
         self.index_activation_middle_layer = 0 # Activation function middle layer
-        self.index_activation_last_layer = -1 # Activation function last layer
+        self.index_activation_last_layer = 0 # Activation function last layer
         
         # Initialize the tuned CNN and the output network
         self.tunedCNN = CNNfeatureExtractorTime(self.input_dim, self.num_channels, self.nf, self.index_activation_middle_layer, self.index_activation_last_layer)
