@@ -306,7 +306,7 @@ def run_training_process(config=None, best_model_criterion='roc_auc'):
         config = wandb.config  # Access the W&B configuration settings
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         std = np.load('/repo/porri/nyst_labelled_videos/std.npy')
-        dataset = NystDataset(csv_file_train, std)  # Path to your dataset
+        dataset = NystDataset(csv_file_train, std, augmentation=True)  # Path to your dataset
 
         # Create the training and validation datasets and convert numpy arrays to PyTorch tensors
         train_input_tensor = dataset.fil_norm_data.clone().detach().to(torch.float32)

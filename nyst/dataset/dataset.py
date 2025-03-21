@@ -16,7 +16,7 @@ from nyst.dataset.preprocess_function import *
 
 
 class NystDataset(Dataset):
-    def __init__(self, filename, std):
+    def __init__(self, filename, std, augmentation=False):
         
         self.std = std
 
@@ -27,8 +27,9 @@ class NystDataset(Dataset):
         print('\n\t ---> Data extraction step COMPLETED\n')
 
         # Esegui la signal augmentation
-        self.augment_signals()
-        print('\n\t ---> Signal augmentation step COMPLETED\n')
+        if augmentation:
+            self.augment_signals()
+            print('\n\t ---> Signal augmentation step COMPLETED\n')
 
         # METODO DA RIVEDERE, SE SERVISSE
         # Filter the invalid data             
