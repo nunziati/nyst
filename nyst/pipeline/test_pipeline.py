@@ -183,7 +183,8 @@ class TestPipeline:
             metrics['f1_score'].append(f1_score(y_test, predictions_binary, zero_division=0))
 
             # Plot confusion matrix for a specific threshold (e.g., 0.5)
-            self.plot_confusion_matrix(y_test, predictions_binary, confidence)
+            if confidence == 0.5:
+                self.plot_confusion_matrix(y_test, predictions_binary, confidence)
 
 
         self.plot_metrics(metrics, confidences)
@@ -194,19 +195,35 @@ class TestPipeline:
 
 
 if __name__ == '__main__':
-    # Example usage
+    # Define paths
+    input_dir = '/repo/porri/nyst/models'  # Directory containing subfolders with models
     output_dir = '/repo/porri/nyst_labelled_videos/grafici'
     test_file_path = '/repo/porri/nyst_labelled_videos/test_dataset.csv'
     std_file_path = '/repo/porri/nyst_labelled_videos/std.npy'
-    model_path = '/repo/porri/nyst/models/run-20250322_113026-1jh1o0f7/best_model.pth'
-   #'/repo/porri/nyst/models_32_relu_stab/run-20250321_114128-tvzo0dun/best_model.pth' 
-    params = {
-                "input_dim": 150,
-                "num_channels": 8,
-                "nf": 8,
-                "index_activation_middle_layer": 0,
-                "index_activation_last_layer": 0
-                }
 
-    test_pipeline = TestPipeline(output_dir, test_file_path, std_file_path, model_path, params=params)
-    test_pipeline.run()
+    # Parameters for the model
+    params = {
+        "input_dim": 150,
+        "num_channels": 8,
+        "nf": 8,
+        "index_activation_middle_layer": 0,
+        "index_activation_last_layer": 0
+    }
+
+    # Iterate over all subdirectories in the input directory
+    for subdir in os.listdir(input_dir):
+        model_dir = os.path.join(input_dir, subdir)
+        if os.path.isdir(model_dir):  # Check if it's a directory
+            model_path = os.path.join(model_dir, 'best_model.pth')
+            if os.path.exists(model_path):  # Check if the model file exists
+                # Create a corresponding output subdirectory
+                sub_output_dir = os.path.join(output_dir, subdir)
+                os.makedirs(sub_output_dir, exist_ok=True)
+
+                print(f"Processing model in {model_dir}...")
+
+                # Run the pipeline for the current model
+                test_pipeline = TestPipeline(sub_output_dir, test_file_path, std_file_path, model_path, params=params)
+                test_pipeline.run()
+            else:
+                print(f"Model file not found in {model_dir}, skipping...")
