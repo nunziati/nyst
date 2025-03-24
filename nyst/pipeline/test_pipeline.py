@@ -4,9 +4,10 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import matplotlib.pyplot as plt
-from dataset import NystDataset
-from classifier import NystClassifier
+from nyst.dataset import NystDataset
+from nyst.classifier import NystClassifier
 import sklearn.metrics as skm  # Import necessario per la curva ROC
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 class TestPipeline:
     def __init__(self, output_dir, test_file_path, std_file_path, model_path, params=None):
@@ -30,6 +31,11 @@ class TestPipeline:
         self.test_data = None
         self.std = None
         self.params = params
+
+        # Ensure the output directory exists
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+            print(f"Output directory created at {self.output_dir}")
 
     def load_model(self):
         if self.params is None:
@@ -61,6 +67,17 @@ class TestPipeline:
         print(f"F1 Score: {f1}")
 
         return accuracy, precision, recall, f1
+    
+    def save_auc_report(self, y_true, y_scores):
+        # Calcola l'AUC
+        fpr, tpr, _ = skm.roc_curve(y_true, y_scores)
+        roc_auc = skm.auc(fpr, tpr)
+
+        # Salva l'AUC in un file di report
+        report_path = os.path.join(self.output_dir, 'report.txt')
+        with open(report_path, 'w') as report_file:
+            report_file.write(f"Area Under the Curve (AUC): {roc_auc:.4f}\n")
+        print(f"AUC report saved to {report_path}")
 
     def plot_metrics(self, metrics, confidences):
         # Plot Accuracy
@@ -120,6 +137,27 @@ class TestPipeline:
         print(f"ROC curve plot saved to {output_path}")
         plt.close()
 
+    
+    def plot_confusion_matrix(self, y_true, y_pred, confidence_threshold):
+        """
+        Plots and saves the confusion matrix.
+        """
+        # Calcola la confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[0, 1])
+
+        # Plot della confusion matrix
+        plt.figure(figsize=(8, 8))
+        disp.plot(cmap=plt.cm.Blues, values_format='d')
+        plt.title(f'Confusion Matrix (Threshold = {confidence_threshold})')
+        plt.grid(False)
+
+        # Salva il grafico
+        output_path = os.path.join(self.output_dir, f'confusion_matrix_{confidence_threshold:.2f}.png')
+        plt.savefig(output_path)
+        print(f"Confusion matrix plot saved to {output_path}")
+        plt.close()
+
     def run(self):
         self.load_model()
         self.load_std()
@@ -129,14 +167,13 @@ class TestPipeline:
         X_test = self.test_data.fil_norm_data
         y_test = self.test_data.extr_data['labels'] 
 
-        confidences = [i / 10 for i in range(1, 10, 0.5)]  # Confidence thresholds from 0.1 to 0.9
+        confidences = np.arange(0., 1., 0.05)  # Confidence thresholds from 0. to 1.
         metrics = {'accuracy': [], 'precision': [], 'recall': [], 'f1_score': []}
         y_scores = []  # To store raw scores for ROC curve
 
         for confidence in confidences:
             with torch.no_grad():
-                X_tensor = torch.tensor(X_test.values, dtype=torch.float32)
-                predictions = self.model(X_tensor).numpy()
+                predictions = self.model(X_test).numpy()
                 y_scores = predictions  # Save raw scores for ROC
                 predictions_binary = (predictions > confidence).astype(int)
 
@@ -145,16 +182,31 @@ class TestPipeline:
             metrics['recall'].append(recall_score(y_test, predictions_binary, zero_division=0))
             metrics['f1_score'].append(f1_score(y_test, predictions_binary, zero_division=0))
 
+            # Plot confusion matrix for a specific threshold (e.g., 0.5)
+            self.plot_confusion_matrix(y_test, predictions_binary, confidence)
+
+
         self.plot_metrics(metrics, confidences)
         self.plot_roc_curve(y_test, y_scores)
+
+        # Salva il report AUC
+        self.save_auc_report(y_test, y_scores)
 
 
 if __name__ == '__main__':
     # Example usage
-    output_dir = '/path/to/output'
-    test_file_path = '/path/to/test.csv'
-    std_file_path = '/path/to/target.npy'
-    model_path = '/path/to/model.pth'
+    output_dir = '/repo/porri/nyst_labelled_videos/grafici'
+    test_file_path = '/repo/porri/nyst_labelled_videos/test_dataset.csv'
+    std_file_path = '/repo/porri/nyst_labelled_videos/std.npy'
+    model_path = '/repo/porri/nyst/models/run-20250322_113026-1jh1o0f7/best_model.pth'
+   #'/repo/porri/nyst/models_32_relu_stab/run-20250321_114128-tvzo0dun/best_model.pth' 
+    params = {
+                "input_dim": 150,
+                "num_channels": 8,
+                "nf": 8,
+                "index_activation_middle_layer": 0,
+                "index_activation_last_layer": 0
+                }
 
-    test_pipeline = TestPipeline(output_dir, test_file_path, std_file_path, model_path)
+    test_pipeline = TestPipeline(output_dir, test_file_path, std_file_path, model_path, params=params)
     test_pipeline.run()
