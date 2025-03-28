@@ -8,6 +8,7 @@ from nyst.dataset import NystDataset
 from nyst.classifier import NystClassifier
 import sklearn.metrics as skm  # Import necessario per la curva ROC
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import precision_recall_curve, auc  # Import necessario
 
 class TestPipeline:
     def __init__(self, output_dir, test_file_path, std_file_path, model_path, params=None):
@@ -69,14 +70,19 @@ class TestPipeline:
         return accuracy, precision, recall, f1
     
     def save_auc_report(self, y_true, y_scores):
-        # Calcola l'AUC
+        # Calcola l'AUC per la curva ROC
         fpr, tpr, _ = skm.roc_curve(y_true, y_scores)
         roc_auc = skm.auc(fpr, tpr)
+
+        # Calcola l'AUC per la curva Precision-Recall
+        precision, recall, _ = precision_recall_curve(y_true, y_scores)
+        pr_auc = auc(recall, precision)
 
         # Salva l'AUC in un file di report
         report_path = os.path.join(self.output_dir, 'report.txt')
         with open(report_path, 'w') as report_file:
-            report_file.write(f"Area Under the Curve (AUC): {roc_auc:.4f}\n")
+            report_file.write(f"Area Under the Curve (ROC AUC): {roc_auc:.4f}\n")
+            report_file.write(f"Area Under the Curve (PR AUC): {pr_auc:.4f}\n")
         print(f"AUC report saved to {report_path}")
 
     def plot_metrics(self, metrics, confidences):
