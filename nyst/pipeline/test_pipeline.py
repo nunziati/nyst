@@ -85,6 +85,40 @@ class TestPipeline:
             report_file.write(f"Area Under the Curve (PR AUC): {pr_auc:.4f}\n")
         print(f"AUC report saved to {report_path}")
 
+    def save_statistics(self, y_true, y_scores, thresholds):
+        """
+        Calcola e salva le statistiche per le soglie specificate.
+        """
+        report_path = os.path.join(self.output_dir, 'statistics_report.txt')
+        with open(report_path, 'w') as report_file:
+            for threshold in thresholds:
+                # Calcola le predizioni binarie
+                y_pred = (y_scores > threshold).astype(int)
+
+                # Calcola le metriche
+                accuracy = accuracy_score(y_true, y_pred)
+                precision = precision_score(y_true, y_pred, zero_division=0)
+                recall = recall_score(y_true, y_pred, zero_division=0)
+                f1 = f1_score(y_true, y_pred, zero_division=0)
+                fnr = 1 - recall  # False Negative Rate
+                tpr = recall  # True Positive Rate
+
+                # Calcola il valore del ROC AUC
+                fpr, tpr_curve, _ = skm.roc_curve(y_true, y_scores)
+                roc_auc = skm.auc(fpr, tpr_curve)
+
+                # Scrivi i risultati nel file
+                report_file.write(f"Threshold: {threshold:.2f}\n")
+                report_file.write(f"Accuracy: {accuracy:.4f}\n")
+                report_file.write(f"Precision: {precision:.4f}\n")
+                report_file.write(f"Recall: {recall:.4f}\n")
+                report_file.write(f"F1 Score: {f1:.4f}\n")
+                report_file.write(f"False Negative Rate (FNR): {fnr:.4f}\n")
+                report_file.write(f"True Positive Rate (TPR): {tpr:.4f}\n")
+                report_file.write(f"ROC AUC: {roc_auc:.4f}\n")
+                report_file.write("\n")
+        print(f"Statistics report saved to {report_path}")
+
     def plot_metrics(self, metrics, confidences):
         # Plot Accuracy
         plt.figure(figsize=(10, 6))
@@ -191,12 +225,14 @@ class TestPipeline:
             # Plot confusion matrix for a specific threshold (e.g., 0.5)
             self.plot_confusion_matrix(y_test, predictions_binary, confidence)
 
-
         self.plot_metrics(metrics, confidences)
         self.plot_roc_curve(y_test, y_scores)
 
         # Salva il report AUC
         self.save_auc_report(y_test, y_scores)
+
+        # Salva le statistiche per le soglie 0.5 e 0.8
+        self.save_statistics(y_test, y_scores, thresholds=[0.5, 0.8])
 
 
 if __name__ == '__main__':
