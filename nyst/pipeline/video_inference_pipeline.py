@@ -19,7 +19,7 @@ class VideoTestPipeline(FirstPipeline):
     def __init__(self, classifier_weights, roi_detector_weights, eye_segmenter_weights, logfile_path, window_size_s, overlapping_s, normalization_std, batch_size=32, device='cpu'):
         super().__init__(roi_detector_weights, eye_segmenter_weights, logfile_path, interpolate=None)
 
-        self.classifier = NystClassifier(nf=32)
+        self.classifier = NystClassifier(nf=16)
         self.classifier.load_weights(classifier_weights)
 
         self.window_size_s = window_size_s
@@ -93,7 +93,7 @@ class VideoTestPipeline(FirstPipeline):
 
         print(predictions)
 
-        predictions = predictions > 0.7
+        predictions = predictions > 0.8
 
 
         print("Inference done")
@@ -202,17 +202,17 @@ class VideoTestPipeline(FirstPipeline):
                     self.run(input_video_path, output_video_path)
 
 if __name__ == '__main__':
-    weights_path = '/repo/nunziati/nyst/models/best_model.pth'
-    roi_detector_weights = '/repo/nunziati/nyst/nyst/roi/best_yolo11m.pt'
-    eye_segmenter_weights = '/repo/nunziati/nyst/nyst/seg_eyes/eyes_seg_threshold.h5'
-    logfile_path = '/repo/nunziati/nyst/test_videos/output/logfile.txt'
+    weights_path = '/repo/porri/nyst/models_10/run-20250324_160114-gihkxu9t/best_model.pth'
+    roi_detector_weights = '/repo/porri/nyst/yolo_models/best_yolo11m.pt'
+    eye_segmenter_weights = '/repo/porri/eyes_seg_threshold.h5'
+    logfile_path = '/repo/porri/output_infer_video/logfile.txt'
     window_size_s = 5
-    overlapping_s = 2
-    normalization_std = np.load('/repo/nunziati/nyst/nyst/dataset/std.npy')
+    overlapping_s = 3
+    normalization_std = np.load('/repo/porri/nyst_labelled_videos/std.npy')
 
-    input_video = '/repo/nunziati/nyst/test_videos/001.mp4'
-    output_video = '/repo/nunziati/nyst/test_videos/output/001.mp4'
-    output_plot = '/repo/nunziati/nyst/test_videos/output/001.html'
+    input_video = '/repo/porri/prova/042_001.mp4'
+    output_video = '/repo/porri/output_infer_video/042_001.mp4'
+    output_plot = '/repo/porri/output_infer_video/042_001.html'
 
     pipeline = VideoTestPipeline(weights_path, roi_detector_weights, eye_segmenter_weights, logfile_path, window_size_s, overlapping_s, normalization_std)
     pipeline.run(input_video, output_video, output_plot)

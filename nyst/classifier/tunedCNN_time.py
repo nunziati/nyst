@@ -5,39 +5,45 @@ import torch
 Activation_list = [nn.ReLU(inplace=True), nn.Tanh()]
 
 class CNNfeatureExtractorTime(nn.Module):
-    def __init__(self, input_dim, num_channels, nf, index_activation_middle_layer=0, index_activation_last_layer=-1):
+    def __init__(self, input_dim, num_channels, nf, drop_par, index_activation_middle_layer=0, index_activation_last_layer=0):
         super(CNNfeatureExtractorTime, self).__init__()
         self.input_dim = input_dim
         self.num_channels = num_channels  # Number of desired channels
         self.nf = nf  # Number of filters
         self.index_activation_middle_layer = index_activation_middle_layer  # Index for selecting the activation function of middle layers
         self.index_activation_last_layer = index_activation_last_layer  # Index for selecting the activation function of last layer
+        self.drop_par = drop_par  # Dropout probability
+        self.kernel_size = 5
 
         # Defining the structure of the network
         self.main = nn.Sequential(
             # The first layer - convolutional
-            nn.Conv1d(in_channels=self.num_channels, out_channels=self.nf, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv1d(in_channels=self.num_channels, out_channels=self.nf, kernel_size=self.kernel_size, stride=1, padding=1, bias=True),
             Activation_list[self.index_activation_middle_layer],
             nn.MaxPool1d(kernel_size=2, stride=2),
+            nn.Dropout(p=self.drop_par),  # Dropout added here
 
             # The second layer - convolutional
-            nn.Conv1d(in_channels=self.nf, out_channels=self.nf*2, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv1d(in_channels=self.nf, out_channels=self.nf*2, kernel_size=self.kernel_size, stride=1, padding=1, bias=True),
             nn.BatchNorm1d(self.nf*2),
             Activation_list[self.index_activation_middle_layer],
             nn.MaxPool1d(kernel_size=2, stride=2),
+            nn.Dropout(p=self.drop_par),  # Dropout added here
 
             # The third layer - convolutional
-            nn.Conv1d(in_channels=self.nf*2, out_channels=self.nf*4, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv1d(in_channels=self.nf*2, out_channels=self.nf*4, kernel_size=self.kernel_size, stride=1, padding=1, bias=True),
             nn.BatchNorm1d(self.nf*4),
             Activation_list[self.index_activation_middle_layer],
+            nn.Dropout(p=self.drop_par),  # Dropout added here
 
             # The fourth layer - convolutional
-            nn.Conv1d(in_channels=self.nf*4, out_channels=self.nf*8, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv1d(in_channels=self.nf*4, out_channels=self.nf*8, kernel_size=self.kernel_size, stride=1, padding=1, bias=True),
             nn.BatchNorm1d(self.nf*8),
             Activation_list[self.index_activation_middle_layer],
+            nn.Dropout(p=self.drop_par),  # Dropout added here
 
             # The fifth layer - convolutional
-            nn.Conv1d(in_channels=self.nf*8, out_channels=self.nf*16, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv1d(in_channels=self.nf*8, out_channels=self.nf*16, kernel_size=self.kernel_size, stride=1, padding=1, bias=True),
             nn.BatchNorm1d(self.nf*16),
             Activation_list[self.index_activation_last_layer],
             nn.Flatten()

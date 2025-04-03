@@ -59,4 +59,4 @@ save_path:
 save_path_info:
     '/repo/porri/nyst_labelled_videos'
 save_path_wb:
-    '/repo/porri/nyst/models'
+    '/repo/porri/nyst/models_1'

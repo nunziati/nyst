@@ -17,7 +17,7 @@ parameters:
   optimizer:
     values: ['adam'] #'sgd'    
   criterion:
-    values: ['BCELoss','MSELoss'] 
+    values: ['BCELoss','MSELoss']
 
 metric:
   goal: minimize

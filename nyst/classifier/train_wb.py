@@ -307,6 +307,7 @@ def run_training_process(config=None, best_model_criterion='roc_auc'):
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         std = np.load('/repo/porri/nyst_labelled_videos/std.npy')
         dataset = NystDataset(csv_file_train, std, augmentation=True)  # Path to your dataset
+        save_path_wb ='/repo/porri/nyst/models_15'
 
         # Create the training and validation datasets and convert numpy arrays to PyTorch tensors
         train_input_tensor = dataset.fil_norm_data.clone().detach().to(torch.float32)
