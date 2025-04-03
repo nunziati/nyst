@@ -189,8 +189,7 @@ class TestPipeline:
             metrics['f1_score'].append(f1_score(y_test, predictions_binary, zero_division=0))
 
             # Plot confusion matrix for a specific threshold (e.g., 0.5)
-            if confidence == 0.5:
-                self.plot_confusion_matrix(y_test, predictions_binary, confidence)
+            self.plot_confusion_matrix(y_test, predictions_binary, confidence)
 
 
         self.plot_metrics(metrics, confidences)
@@ -202,7 +201,7 @@ class TestPipeline:
 
 if __name__ == '__main__':
     # Define paths
-    input_dir = '/repo/porri/nyst/models'  # Directory containing subfolders with models
+    input_dir = '/repo/porri/nyst/test'  # Directory containing subfolders with models
     output_dir = '/repo/porri/nyst_labelled_videos/grafici'
     test_file_path = '/repo/porri/nyst_labelled_videos/test_dataset.csv'
     std_file_path = '/repo/porri/nyst_labelled_videos/std.npy'
@@ -211,7 +210,7 @@ if __name__ == '__main__':
     params = {
         "input_dim": 150,
         "num_channels": 8,
-        "nf": 8,
+        "nf": 16,
         "index_activation_middle_layer": 0,
         "index_activation_last_layer": 0
     }
